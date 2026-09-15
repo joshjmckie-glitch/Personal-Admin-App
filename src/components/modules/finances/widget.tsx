@@ -43,18 +43,18 @@ export async function FinancesWidget() {
     );
   }
 
-  const { data: items } = await supabase
-    .from("finance_line_items")
-    .select("category, amount")
-    .eq("paycheck_id", paycheck.id);
+  const { data: expenses } = await supabase
+    .from("finance_recurring_expenses")
+    .select("amount, active")
+    .eq("active", true);
 
-  const allocated = (items ?? []).reduce((sum, i) => sum + i.amount, 0);
+  const allocated = (expenses ?? []).reduce((sum, e) => sum + e.amount, 0);
 
   return (
     <div>
       <p className="text-xl font-semibold">{formatCurrency(paycheck.net_amount)}</p>
       <p className="text-xs text-muted-foreground">
-        Last pay {formatDate(paycheck.pay_date)} · {formatCurrency(allocated)} allocated
+        Last pay {formatDate(paycheck.pay_date)} · {formatCurrency(allocated)} recurring/month
       </p>
     </div>
   );

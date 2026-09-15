@@ -65,35 +65,33 @@ export async function deletePaycheck(id: string) {
   revalidatePath("/");
 }
 
-function lineItemFields(formData: FormData) {
+function recurringExpenseFields(formData: FormData) {
   return {
-    category: String(formData.get("category")) as FinanceCategory,
     name: String(formData.get("name")),
+    category: String(formData.get("category")) as FinanceCategory,
     amount: Number(formData.get("amount")),
-    is_recurring: formData.get("is_recurring") === "on",
+    notes: String(formData.get("notes") ?? "").trim() || null,
   };
 }
 
-export async function createLineItem(paycheckId: string, formData: FormData) {
+export async function createRecurringExpense(formData: FormData) {
   const { supabase, userId } = await requireUserId();
 
-  const { error } = await supabase.from("finance_line_items").insert({
-    user_id: userId,
-    paycheck_id: paycheckId,
-    ...lineItemFields(formData),
-  });
+  const { error } = await supabase
+    .from("finance_recurring_expenses")
+    .insert({ user_id: userId, ...recurringExpenseFields(formData) });
   if (error) throw new Error(error.message);
 
   revalidatePath("/finances");
   revalidatePath("/");
 }
 
-export async function updateLineItem(id: string, formData: FormData) {
+export async function updateRecurringExpense(id: string, formData: FormData) {
   const { supabase } = await requireUserId();
 
   const { error } = await supabase
-    .from("finance_line_items")
-    .update(lineItemFields(formData))
+    .from("finance_recurring_expenses")
+    .update(recurringExpenseFields(formData))
     .eq("id", id);
   if (error) throw new Error(error.message);
 
@@ -101,9 +99,22 @@ export async function updateLineItem(id: string, formData: FormData) {
   revalidatePath("/");
 }
 
-export async function deleteLineItem(id: string) {
+export async function toggleRecurringExpenseActive(id: string, active: boolean) {
   const { supabase } = await requireUserId();
-  const { error } = await supabase.from("finance_line_items").delete().eq("id", id);
+
+  const { error } = await supabase
+    .from("finance_recurring_expenses")
+    .update({ active })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/finances");
+  revalidatePath("/");
+}
+
+export async function deleteRecurringExpense(id: string) {
+  const { supabase } = await requireUserId();
+  const { error } = await supabase.from("finance_recurring_expenses").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/finances");

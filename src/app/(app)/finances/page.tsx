@@ -3,48 +3,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NewPaycheckDialog } from "@/components/modules/finances/new-paycheck-dialog";
 import { PaycheckCard } from "@/components/modules/finances/paycheck-card";
 import { SalaryBreakdownCard } from "@/components/modules/finances/salary-breakdown-card";
-import type { FinanceLineItemRow } from "@/lib/types/database";
+import { RecurringExpensesList } from "@/components/modules/finances/recurring-expenses-list";
 
 export default async function FinancesPage() {
   const supabase = await createClient();
 
-  const [{ data: paychecks }, { data: salarySettings }] = await Promise.all([
+  const [{ data: paychecks }, { data: salarySettings }, { data: recurringExpenses }] = await Promise.all([
     supabase
       .from("finance_paychecks")
       .select("*")
       .order("pay_date", { ascending: false })
       .limit(24),
     supabase.from("finance_salary_settings").select("*").maybeSingle(),
+    supabase.from("finance_recurring_expenses").select("*").order("created_at", { ascending: true }),
   ]);
 
-  const paycheckIds = (paychecks ?? []).map((p) => p.id);
-  let itemsByPaycheck = new Map<string, FinanceLineItemRow[]>();
-
-  if (paycheckIds.length > 0) {
-    const { data: items } = await supabase
-      .from("finance_line_items")
-      .select("*")
-      .in("paycheck_id", paycheckIds)
-      .order("created_at", { ascending: true });
-
-    itemsByPaycheck = (items ?? []).reduce((map, item) => {
-      const list = map.get(item.paycheck_id) ?? [];
-      list.push(item);
-      map.set(item.paycheck_id, list);
-      return map;
-    }, new Map<string, FinanceLineItemRow[]>());
-  }
+  const recurringExpensesTotal = (recurringExpenses ?? [])
+    .filter((e) => e.active)
+    .reduce((sum, e) => sum + e.amount, 0);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <div>
         <h2 className="text-lg font-semibold">Finances</h2>
-        <p className="text-sm text-muted-foreground">Per-paycheck breakdown</p>
+        <p className="text-sm text-muted-foreground">Paychecks, monthly expenses & salary</p>
       </div>
 
       <Tabs defaultValue="paychecks">
         <TabsList>
           <TabsTrigger value="paychecks">Paychecks</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="salary">Salary & Tax</TabsTrigger>
         </TabsList>
 
@@ -62,11 +50,15 @@ export default async function FinancesPage() {
               <PaycheckCard
                 key={paycheck.id}
                 paycheck={paycheck}
-                items={itemsByPaycheck.get(paycheck.id) ?? []}
+                recurringExpensesTotal={recurringExpensesTotal}
                 salarySettings={salarySettings ?? null}
               />
             ))
           )}
+        </TabsContent>
+
+        <TabsContent value="expenses">
+          <RecurringExpensesList expenses={recurringExpenses ?? []} />
         </TabsContent>
 
         <TabsContent value="salary">

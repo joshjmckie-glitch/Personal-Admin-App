@@ -59,6 +59,12 @@ Set your annual salary and pension contribution under Finances → Salary & Tax 
 - It's a simplified PAYE estimate: standard tax code, one job, no student loan, no benefits-in-kind. Treat it as a planning guide, not a payslip.
 - Schema: `finance_salary_settings` (one row per user) and `finance_paychecks.overtime_amount`, added in `supabase/migrations/0003_salary_settings.sql`.
 
+## Recurring monthly expenses (Finances)
+
+Finances → Expenses is a standing list of monthly outgoings — subscriptions, and transfers into savings pots (insurance, golf membership, holiday fund, etc.) — set up once rather than re-entered per paycheck. Each has a name, category, monthly amount, and an active/paused toggle (pause instead of delete for something you're skipping this month but will resume). Every paycheck card shows the total of currently-active expenses against that paycheck's net amount.
+
+This replaced an earlier per-paycheck "line item" design (`finance_line_items`, dropped in `supabase/migrations/0004_recurring_expenses.sql`) that required re-adding the same recurring costs under every single paycheck — the new `finance_recurring_expenses` table is a single standing list instead.
+
 ## Live API integrations (not yet wired up)
 
 Per the build brief, these are deliberately left for later, once manual entry is solid:

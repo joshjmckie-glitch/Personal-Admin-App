@@ -36,14 +36,14 @@ export type FinancePaycheckRow = {
 };
 
 export type FinanceCategory = "subscription" | "savings" | "rent" | "bills" | "other";
-export type FinanceLineItemRow = {
+export type FinanceRecurringExpenseRow = {
   id: string;
   user_id: string;
-  paycheck_id: string;
-  category: FinanceCategory;
   name: string;
+  category: FinanceCategory;
   amount: number;
-  is_recurring: boolean;
+  active: boolean;
+  notes: string | null;
   created_at: string;
 };
 
@@ -296,7 +296,10 @@ export interface Database {
         FinancePaycheckRow,
         "id" | "created_at" | "gross_amount" | "overtime_amount" | "employer" | "notes"
       >;
-      finance_line_items: TableDef<FinanceLineItemRow, "id" | "created_at" | "is_recurring">;
+      finance_recurring_expenses: TableDef<
+        FinanceRecurringExpenseRow,
+        "id" | "created_at" | "active" | "notes"
+      >;
       finance_salary_settings: TableDef<
         FinanceSalarySettingsRow,
         "id" | "created_at" | "updated_at" | "pension_percent" | "pension_type"
