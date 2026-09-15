@@ -48,6 +48,16 @@ To install as a PWA: open the deployed HTTPS URL on a phone and use "Add to Home
   **To add a new module:** create its Supabase table(s) + RLS policies (a new migration file), its folder under `src/app/(app)/<id>/` and `src/components/modules/<id>/`, then add one entry to `registry.ts` and one to `widgets.tsx`. Nothing else changes.
 - **Auth.** `src/proxy.ts` (Next.js 16's renamed `middleware.ts`) refreshes the Supabase session and redirects unauthenticated requests to `/login`. There is no public registration screen — accounts are provisioned directly in Supabase.
 - **Theming.** Dark (default) and light themes are defined as CSS variables in `src/app/globals.css`, matching the brief's charcoal/gold and off-white/gold palettes. The toggle uses `next-themes` (instant, no flash) and mirrors the choice to `profiles.theme_preference` for cross-device reference.
+- **Edit everywhere.** Every module supports edit in place, not just add/delete — the same dialog component is reused for both by passing it an existing row (e.g. `<NewPaycheckDialog paycheck={p} />`); the dialog switches its title, submit action, and pre-filled values accordingly.
+- **Delete confirmation.** The shared `DeleteButton` (`src/components/modules/delete-button.tsx`) shows an inline confirm popover before calling its delete action — this is the single place that behaviour lives, so every module gets it for free.
+
+## Salary & tax estimate (Finances)
+
+Set your annual salary and pension contribution under Finances → Salary & Tax to get an estimated UK take-home breakdown (income tax, National Insurance, pension) and a monthly expected figure. Each paycheck can log one-off overtime/extra pay, which adjusts that month's expected take-home for comparison against what you actually log as the paycheck's net amount.
+
+- Calculation lives in `src/lib/tax/uk-tax.ts` — England/Wales/NI rates only (Scotland has different bands, not modelled), current tax year's bands hardcoded with a comment to update annually.
+- It's a simplified PAYE estimate: standard tax code, one job, no student loan, no benefits-in-kind. Treat it as a planning guide, not a payslip.
+- Schema: `finance_salary_settings` (one row per user) and `finance_paychecks.overtime_amount`, added in `supabase/migrations/0003_salary_settings.sql`.
 
 ## Live API integrations (not yet wired up)
 

@@ -4,6 +4,7 @@ import { useTransition } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/modules/delete-button";
+import { NewGoalDialog } from "@/components/modules/fitness/new-goal-dialog";
 import { deleteGoal, setGoalStatus } from "@/lib/actions/fitness";
 import { formatDate } from "@/lib/utils";
 import type { FitnessGoalRow } from "@/lib/types/database";
@@ -42,6 +43,7 @@ export function GoalRow({ goal }: { goal: FitnessGoalRow }) {
             {goal.status}
           </Badge>
         </button>
+        <NewGoalDialog goal={goal} />
         <DeleteButton onDelete={() => deleteGoal(goal.id)} label="Delete goal" />
       </div>
     </div>

@@ -5,6 +5,7 @@ import { ChefHat } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/modules/delete-button";
+import { NewRecipeDialog } from "@/components/modules/recipes/new-recipe-dialog";
 import {
   Dialog,
   DialogContent,
@@ -71,7 +72,8 @@ export function RecipeCard({ recipe }: { recipe: RecipeRow }) {
               <p className="whitespace-pre-line text-sm">{recipe.method}</p>
             </div>
           ) : null}
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-1">
+            <NewRecipeDialog recipe={recipe} />
             <DeleteButton onDelete={() => deleteRecipe(recipe.id)} label="Delete recipe" />
           </div>
         </DialogContent>

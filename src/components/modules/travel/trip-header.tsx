@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { DeleteButton } from "@/components/modules/delete-button";
+import { NewTripDialog } from "@/components/modules/travel/new-trip-dialog";
 import { deleteTrip } from "@/lib/actions/travel";
 import { formatDate } from "@/lib/utils";
 import type { TravelTripRow } from "@/lib/types/database";
@@ -20,13 +21,16 @@ export function TripHeader({ trip }: { trip: TravelTripRow }) {
           {trip.end_date ? ` – ${formatDate(trip.end_date)}` : ""}
         </p>
       </div>
-      <DeleteButton
-        onDelete={async () => {
-          await deleteTrip(trip.id);
-          router.push("/travel");
-        }}
-        label="Delete trip"
-      />
+      <div className="flex items-center gap-1">
+        <NewTripDialog trip={trip} />
+        <DeleteButton
+          onDelete={async () => {
+            await deleteTrip(trip.id);
+            router.push("/travel");
+          }}
+          label="Delete trip"
+        />
+      </div>
     </div>
   );
 }

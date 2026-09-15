@@ -30,6 +30,23 @@ export async function createGoal(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function updateGoal(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const title = String(formData.get("title"));
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const target_date = String(formData.get("target_date") ?? "").trim() || null;
+
+  const { error } = await supabase
+    .from("fitness_goals")
+    .update({ title, description, target_date })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/fitness");
+  revalidatePath("/");
+}
+
 export async function setGoalStatus(id: string, status: "active" | "completed" | "abandoned") {
   const { supabase } = await requireUserId();
   const { error } = await supabase.from("fitness_goals").update({ status }).eq("id", id);
@@ -71,6 +88,31 @@ export async function createSession(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function updateSession(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const activity_type = String(formData.get("activity_type")) as FitnessActivityType;
+  const scheduled_date = String(formData.get("scheduled_date"));
+  const durationRaw = formData.get("duration_minutes");
+  const distanceRaw = formData.get("distance_km");
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  const { error } = await supabase
+    .from("fitness_sessions")
+    .update({
+      activity_type,
+      scheduled_date,
+      duration_minutes: durationRaw ? Number(durationRaw) : null,
+      distance_km: distanceRaw ? Number(distanceRaw) : null,
+      notes,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/fitness");
+  revalidatePath("/");
+}
+
 export async function toggleSessionCompleted(id: string, completed: boolean) {
   const { supabase } = await requireUserId();
   const { error } = await supabase.from("fitness_sessions").update({ completed }).eq("id", id);
@@ -100,6 +142,24 @@ export async function createPersonalBest(formData: FormData) {
   const { error } = await supabase
     .from("fitness_personal_bests")
     .insert({ user_id: userId, activity_type, metric, value, achieved_on });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/fitness");
+  revalidatePath("/");
+}
+
+export async function updatePersonalBest(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const activity_type = String(formData.get("activity_type")) as FitnessActivityType;
+  const metric = String(formData.get("metric"));
+  const value = String(formData.get("value"));
+  const achieved_on = String(formData.get("achieved_on") || new Date().toISOString().slice(0, 10));
+
+  const { error } = await supabase
+    .from("fitness_personal_bests")
+    .update({ activity_type, metric, value, achieved_on })
+    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/fitness");

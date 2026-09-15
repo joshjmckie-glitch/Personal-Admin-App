@@ -29,6 +29,7 @@ export type FinancePaycheckRow = {
   pay_date: string;
   net_amount: number;
   gross_amount: number | null;
+  overtime_amount: number | null;
   employer: string | null;
   notes: string | null;
   created_at: string;
@@ -44,6 +45,17 @@ export type FinanceLineItemRow = {
   amount: number;
   is_recurring: boolean;
   created_at: string;
+};
+
+export type PensionType = "none" | "salary_sacrifice" | "personal";
+export type FinanceSalarySettingsRow = {
+  id: string;
+  user_id: string;
+  annual_salary: number;
+  pension_percent: number;
+  pension_type: PensionType;
+  created_at: string;
+  updated_at: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -282,9 +294,13 @@ export interface Database {
       profiles: TableDef<ProfileRow, "full_name" | "theme_preference" | "created_at">;
       finance_paychecks: TableDef<
         FinancePaycheckRow,
-        "id" | "created_at" | "gross_amount" | "employer" | "notes"
+        "id" | "created_at" | "gross_amount" | "overtime_amount" | "employer" | "notes"
       >;
       finance_line_items: TableDef<FinanceLineItemRow, "id" | "created_at" | "is_recurring">;
+      finance_salary_settings: TableDef<
+        FinanceSalarySettingsRow,
+        "id" | "created_at" | "updated_at" | "pension_percent" | "pension_type"
+      >;
       investment_accounts: TableDef<
         InvestmentAccountRow,
         | "id"

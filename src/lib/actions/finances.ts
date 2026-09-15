@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import type { FinanceCategory } from "@/lib/types/database";
+import type { FinanceCategory, PensionType } from "@/lib/types/database";
 
 async function requireUserId() {
   const supabase = await createClient();
@@ -14,21 +14,42 @@ async function requireUserId() {
   return { supabase, userId: user.id };
 }
 
-export async function createPaycheck(formData: FormData) {
-  const { supabase, userId } = await requireUserId();
-
+function paycheckFields(formData: FormData) {
   const pay_date = String(formData.get("pay_date"));
   const net_amount = Number(formData.get("net_amount"));
   const grossRaw = formData.get("gross_amount");
+  const overtimeRaw = formData.get("overtime_amount");
   const employer = String(formData.get("employer") ?? "").trim() || null;
 
-  const { error } = await supabase.from("finance_paychecks").insert({
-    user_id: userId,
+  return {
     pay_date,
     net_amount,
     gross_amount: grossRaw ? Number(grossRaw) : null,
+    overtime_amount: overtimeRaw ? Number(overtimeRaw) : null,
     employer,
+  };
+}
+
+export async function createPaycheck(formData: FormData) {
+  const { supabase, userId } = await requireUserId();
+
+  const { error } = await supabase.from("finance_paychecks").insert({
+    user_id: userId,
+    ...paycheckFields(formData),
   });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/finances");
+  revalidatePath("/");
+}
+
+export async function updatePaycheck(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const { error } = await supabase
+    .from("finance_paychecks")
+    .update(paycheckFields(formData))
+    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/finances");
@@ -44,22 +65,36 @@ export async function deletePaycheck(id: string) {
   revalidatePath("/");
 }
 
+function lineItemFields(formData: FormData) {
+  return {
+    category: String(formData.get("category")) as FinanceCategory,
+    name: String(formData.get("name")),
+    amount: Number(formData.get("amount")),
+    is_recurring: formData.get("is_recurring") === "on",
+  };
+}
+
 export async function createLineItem(paycheckId: string, formData: FormData) {
   const { supabase, userId } = await requireUserId();
-
-  const category = String(formData.get("category")) as FinanceCategory;
-  const name = String(formData.get("name"));
-  const amount = Number(formData.get("amount"));
-  const is_recurring = formData.get("is_recurring") === "on";
 
   const { error } = await supabase.from("finance_line_items").insert({
     user_id: userId,
     paycheck_id: paycheckId,
-    category,
-    name,
-    amount,
-    is_recurring,
+    ...lineItemFields(formData),
   });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/finances");
+  revalidatePath("/");
+}
+
+export async function updateLineItem(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const { error } = await supabase
+    .from("finance_line_items")
+    .update(lineItemFields(formData))
+    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/finances");
@@ -69,6 +104,25 @@ export async function createLineItem(paycheckId: string, formData: FormData) {
 export async function deleteLineItem(id: string) {
   const { supabase } = await requireUserId();
   const { error } = await supabase.from("finance_line_items").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/finances");
+  revalidatePath("/");
+}
+
+export async function saveSalarySettings(formData: FormData) {
+  const { supabase, userId } = await requireUserId();
+
+  const annual_salary = Number(formData.get("annual_salary"));
+  const pension_percent = Number(formData.get("pension_percent") ?? 0);
+  const pension_type = String(formData.get("pension_type") ?? "none") as PensionType;
+
+  const { error } = await supabase
+    .from("finance_salary_settings")
+    .upsert(
+      { user_id: userId, annual_salary, pension_percent, pension_type, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" }
+    );
   if (error) throw new Error(error.message);
 
   revalidatePath("/finances");

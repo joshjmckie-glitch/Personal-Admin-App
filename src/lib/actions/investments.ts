@@ -38,6 +38,25 @@ export async function createAccount(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function updateAccount(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const name = String(formData.get("name"));
+  const provider = String(formData.get("provider")) as InvestmentProvider;
+  const account_type = String(formData.get("account_type")) as InvestmentAccountType;
+  const currency = String(formData.get("currency") ?? "GBP");
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  const { error } = await supabase
+    .from("investment_accounts")
+    .update({ name, provider, account_type, currency, notes, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/investments");
+  revalidatePath("/");
+}
+
 export async function deleteAccount(id: string) {
   const { supabase } = await requireUserId();
   const { error } = await supabase.from("investment_accounts").delete().eq("id", id);

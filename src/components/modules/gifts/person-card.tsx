@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/modules/delete-button";
 import { NewIdeaDialog } from "@/components/modules/gifts/new-idea-dialog";
+import { NewPersonDialog } from "@/components/modules/gifts/new-person-dialog";
 import { deleteGiftIdea, deletePerson, setGiftStatus } from "@/lib/actions/gifts";
 import { formatCurrency } from "@/lib/utils";
 import type { GiftIdeaRow, GiftPersonRow, GiftStatus } from "@/lib/types/database";
@@ -37,7 +38,10 @@ export function PersonCard({ person, ideas }: { person: GiftPersonRow; ideas: Gi
             {avg != null ? ` · avg ${formatCurrency(avg)}` : ""}
           </CardDescription>
         </div>
-        <DeleteButton onDelete={() => deletePerson(person.id)} label="Delete person" />
+        <div className="flex items-center gap-1">
+          <NewPersonDialog person={person} />
+          <DeleteButton onDelete={() => deletePerson(person.id)} label="Delete person" />
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {ideas.length === 0 ? (
@@ -72,6 +76,7 @@ function IdeaRow({ idea }: { idea: GiftIdeaRow }) {
             {idea.status}
           </Badge>
         </button>
+        <NewIdeaDialog personId={idea.person_id} idea={idea} />
         <DeleteButton onDelete={() => deleteGiftIdea(idea.id)} label="Delete idea" />
       </div>
     </div>

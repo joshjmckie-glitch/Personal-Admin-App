@@ -30,6 +30,25 @@ export async function createRecipe(input: {
   revalidatePath("/");
 }
 
+export async function updateRecipe(
+  id: string,
+  input: {
+    title: string;
+    ingredients: string;
+    method: string;
+    tags: string[];
+    photo_url: string | null;
+  }
+) {
+  const { supabase } = await requireUserId();
+
+  const { error } = await supabase.from("recipes").update(input).eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/recipes");
+  revalidatePath("/");
+}
+
 export async function deleteRecipe(id: string) {
   const { supabase } = await requireUserId();
   const { error } = await supabase.from("recipes").delete().eq("id", id);

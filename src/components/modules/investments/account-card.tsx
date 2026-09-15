@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/modules/delete-button";
 import { LogValueDialog } from "@/components/modules/investments/log-value-dialog";
+import { NewAccountDialog } from "@/components/modules/investments/new-account-dialog";
 import { deleteAccount } from "@/lib/actions/investments";
 import { formatCurrency } from "@/lib/utils";
 import type { InvestmentAccountRow, InvestmentValueHistoryRow } from "@/lib/types/database";
@@ -54,7 +55,10 @@ export function AccountCard({
             )}
           </CardDescription>
         </div>
-        <DeleteButton onDelete={() => deleteAccount(account.id)} label="Delete account" />
+        <div className="flex items-center gap-1">
+          <NewAccountDialog account={account} />
+          <DeleteButton onDelete={() => deleteAccount(account.id)} label="Delete account" />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex items-end justify-between gap-4">

@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/modules/delete-button";
+import { NewLineItemDialog } from "@/components/modules/finances/new-line-item-dialog";
 import { deleteLineItem } from "@/lib/actions/finances";
 import { formatCurrency } from "@/lib/utils";
 import type { FinanceLineItemRow } from "@/lib/types/database";
@@ -23,6 +24,7 @@ export function LineItemRow({ item }: { item: FinanceLineItemRow }) {
       </div>
       <div className="flex items-center gap-1">
         <span className="text-sm font-medium">{formatCurrency(item.amount)}</span>
+        <NewLineItemDialog paycheckId={item.paycheck_id} lineItem={item} />
         <DeleteButton onDelete={() => deleteLineItem(item.id)} label="Delete item" />
       </div>
     </div>

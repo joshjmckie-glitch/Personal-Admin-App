@@ -2,6 +2,7 @@
 
 import { DeleteButton } from "@/components/modules/delete-button";
 import { ACTIVITY_LABEL } from "@/components/modules/fitness/activity-select";
+import { NewPbDialog } from "@/components/modules/fitness/new-pb-dialog";
 import { deletePersonalBest } from "@/lib/actions/fitness";
 import { formatDate } from "@/lib/utils";
 import type { FitnessPersonalBestRow } from "@/lib/types/database";
@@ -17,6 +18,7 @@ export function PbRow({ pb }: { pb: FitnessPersonalBestRow }) {
       </div>
       <div className="flex items-center gap-1">
         <span className="text-sm font-semibold text-primary">{pb.value}</span>
+        <NewPbDialog pb={pb} />
         <DeleteButton onDelete={() => deletePersonalBest(pb.id)} label="Delete PB" />
       </div>
     </div>

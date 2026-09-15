@@ -7,6 +7,7 @@ import { CountdownBadge } from "@/components/modules/car/countdown-badge";
 import { InsuranceDialog } from "@/components/modules/car/insurance-dialog";
 import { MotDialog } from "@/components/modules/car/mot-dialog";
 import { MaintenanceDialog } from "@/components/modules/car/maintenance-dialog";
+import { NewVehicleDialog } from "@/components/modules/car/new-vehicle-dialog";
 import { deleteVehicle, deleteMaintenanceEntry } from "@/lib/actions/car";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { CarInsuranceRow, CarMaintenanceLogRow, CarMotRow, CarVehicleRow } from "@/lib/types/database";
@@ -39,13 +40,19 @@ export function VehicleCard({
             {[vehicle.registration, vehicle.year].filter(Boolean).join(" · ") || "No details yet"}
           </CardDescription>
         </div>
-        <DeleteButton onDelete={() => deleteVehicle(vehicle.id)} label="Delete vehicle" />
+        <div className="flex items-center gap-1">
+          <NewVehicleDialog vehicle={vehicle} />
+          <DeleteButton onDelete={() => deleteVehicle(vehicle.id)} label="Delete vehicle" />
+        </div>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-border/60 p-3">
-            <p className="text-xs text-muted-foreground">Insurance</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Insurance</p>
+              {insurance ? <InsuranceDialog vehicleId={vehicle.id} record={insurance} /> : null}
+            </div>
             <p className="text-sm font-medium">
               {insurance?.price ? formatCurrency(insurance.price) : "—"}
             </p>
@@ -54,7 +61,10 @@ export function VehicleCard({
             </div>
           </div>
           <div className="rounded-lg border border-border/60 p-3">
-            <p className="text-xs text-muted-foreground">MOT</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">MOT</p>
+              {mot ? <MotDialog vehicleId={vehicle.id} record={mot} /> : null}
+            </div>
             <p className="text-sm font-medium">{mot ? formatDate(mot.due_date) : "—"}</p>
             <div className="mt-1">
               <CountdownBadge date={mot?.due_date ?? null} />
@@ -90,6 +100,7 @@ export function VehicleCard({
                     {entry.cost ? (
                       <span className="text-sm font-medium">{formatCurrency(entry.cost)}</span>
                     ) : null}
+                    <MaintenanceDialog vehicleId={vehicle.id} entry={entry} />
                     <DeleteButton onDelete={() => deleteMaintenanceEntry(entry.id)} label="Delete entry" />
                   </div>
                 </div>

@@ -14,21 +14,31 @@ async function requireUserId() {
   return { supabase, userId: user.id };
 }
 
+function vehicleFields(formData: FormData) {
+  return {
+    make: String(formData.get("make") ?? "").trim() || null,
+    model: String(formData.get("model") ?? "").trim() || null,
+    registration: String(formData.get("registration") ?? "").trim() || null,
+    year: formData.get("year") ? Number(formData.get("year")) : null,
+  };
+}
+
 export async function createVehicle(formData: FormData) {
   const { supabase, userId } = await requireUserId();
 
-  const make = String(formData.get("make") ?? "").trim() || null;
-  const model = String(formData.get("model") ?? "").trim() || null;
-  const registration = String(formData.get("registration") ?? "").trim() || null;
-  const yearRaw = formData.get("year");
+  const { error } = await supabase
+    .from("car_vehicles")
+    .insert({ user_id: userId, ...vehicleFields(formData) });
+  if (error) throw new Error(error.message);
 
-  const { error } = await supabase.from("car_vehicles").insert({
-    user_id: userId,
-    make,
-    model,
-    registration,
-    year: yearRaw ? Number(yearRaw) : null,
-  });
+  revalidatePath("/car");
+  revalidatePath("/");
+}
+
+export async function updateVehicle(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const { error } = await supabase.from("car_vehicles").update(vehicleFields(formData)).eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/car");
@@ -44,62 +54,98 @@ export async function deleteVehicle(id: string) {
   revalidatePath("/");
 }
 
+function insuranceFields(formData: FormData) {
+  return {
+    provider: String(formData.get("provider") ?? "").trim() || null,
+    price: formData.get("price") ? Number(formData.get("price")) : null,
+    renewal_date: String(formData.get("renewal_date")),
+  };
+}
+
+/** Logs a new insurance renewal (keeps the previous one as history). */
 export async function updateInsurance(vehicleId: string, formData: FormData) {
   const { supabase, userId } = await requireUserId();
 
-  const provider = String(formData.get("provider") ?? "").trim() || null;
-  const priceRaw = formData.get("price");
-  const renewal_date = String(formData.get("renewal_date"));
-
-  const { error } = await supabase.from("car_insurance").insert({
-    user_id: userId,
-    vehicle_id: vehicleId,
-    provider,
-    price: priceRaw ? Number(priceRaw) : null,
-    renewal_date,
-  });
+  const { error } = await supabase
+    .from("car_insurance")
+    .insert({ user_id: userId, vehicle_id: vehicleId, ...insuranceFields(formData) });
   if (error) throw new Error(error.message);
 
   revalidatePath("/car");
   revalidatePath("/");
 }
 
-export async function updateMot(vehicleId: string, formData: FormData) {
-  const { supabase, userId } = await requireUserId();
+/** Corrects the current insurance record in place (no new history row). */
+export async function editInsuranceRecord(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
 
-  const due_date = String(formData.get("due_date"));
-  const last_pass_date = String(formData.get("last_pass_date") ?? "").trim() || null;
-
-  const { error } = await supabase.from("car_mot").insert({
-    user_id: userId,
-    vehicle_id: vehicleId,
-    due_date,
-    last_pass_date,
-  });
+  const { error } = await supabase.from("car_insurance").update(insuranceFields(formData)).eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/car");
   revalidatePath("/");
+}
+
+function motFields(formData: FormData) {
+  return {
+    due_date: String(formData.get("due_date")),
+    last_pass_date: String(formData.get("last_pass_date") ?? "").trim() || null,
+  };
+}
+
+/** Logs a new MOT record (keeps the previous one as history). */
+export async function updateMot(vehicleId: string, formData: FormData) {
+  const { supabase, userId } = await requireUserId();
+
+  const { error } = await supabase
+    .from("car_mot")
+    .insert({ user_id: userId, vehicle_id: vehicleId, ...motFields(formData) });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/car");
+  revalidatePath("/");
+}
+
+/** Corrects the current MOT record in place (no new history row). */
+export async function editMotRecord(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const { error } = await supabase.from("car_mot").update(motFields(formData)).eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/car");
+  revalidatePath("/");
+}
+
+function maintenanceFields(formData: FormData) {
+  return {
+    type: String(formData.get("type")) as CarMaintenanceType,
+    performed_on: String(formData.get("performed_on")),
+    cost: formData.get("cost") ? Number(formData.get("cost")) : null,
+    mileage: formData.get("mileage") ? Number(formData.get("mileage")) : null,
+    notes: String(formData.get("notes") ?? "").trim() || null,
+  };
 }
 
 export async function createMaintenanceEntry(vehicleId: string, formData: FormData) {
   const { supabase, userId } = await requireUserId();
 
-  const type = String(formData.get("type")) as CarMaintenanceType;
-  const performed_on = String(formData.get("performed_on"));
-  const costRaw = formData.get("cost");
-  const mileageRaw = formData.get("mileage");
-  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const { error } = await supabase
+    .from("car_maintenance_log")
+    .insert({ user_id: userId, vehicle_id: vehicleId, ...maintenanceFields(formData) });
+  if (error) throw new Error(error.message);
 
-  const { error } = await supabase.from("car_maintenance_log").insert({
-    user_id: userId,
-    vehicle_id: vehicleId,
-    type,
-    performed_on,
-    cost: costRaw ? Number(costRaw) : null,
-    mileage: mileageRaw ? Number(mileageRaw) : null,
-    notes,
-  });
+  revalidatePath("/car");
+  revalidatePath("/");
+}
+
+export async function updateMaintenanceEntry(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const { error } = await supabase
+    .from("car_maintenance_log")
+    .update(maintenanceFields(formData))
+    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/car");

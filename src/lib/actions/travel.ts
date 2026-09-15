@@ -31,6 +31,25 @@ export async function createTrip(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function updateTrip(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const name = String(formData.get("name"));
+  const destination = String(formData.get("destination") ?? "").trim() || null;
+  const start_date = String(formData.get("start_date") ?? "").trim() || null;
+  const end_date = String(formData.get("end_date") ?? "").trim() || null;
+
+  const { error } = await supabase
+    .from("travel_trips")
+    .update({ name, destination, start_date, end_date })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/travel/${id}`);
+  revalidatePath("/travel");
+  revalidatePath("/");
+}
+
 export async function deleteTrip(id: string) {
   const { supabase } = await requireUserId();
   const { error } = await supabase.from("travel_trips").delete().eq("id", id);
@@ -93,6 +112,24 @@ export async function createItineraryItem(tripId: string, formData: FormData) {
   revalidatePath(`/travel/${tripId}`);
 }
 
+export async function updateItineraryItem(id: string, tripId: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const item_date = String(formData.get("item_date"));
+  const item_time = String(formData.get("item_time") ?? "").trim() || null;
+  const title = String(formData.get("title"));
+  const location = String(formData.get("location") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+
+  const { error } = await supabase
+    .from("travel_itinerary_items")
+    .update({ item_date, item_time, title, location, description })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/travel/${tripId}`);
+}
+
 export async function deleteItineraryItem(id: string, tripId: string) {
   const { supabase } = await requireUserId();
   const { error } = await supabase.from("travel_itinerary_items").delete().eq("id", id);
@@ -117,6 +154,25 @@ export async function createCost(tripId: string, formData: FormData) {
     amount,
     currency,
   });
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/travel/${tripId}`);
+  revalidatePath("/travel");
+  revalidatePath("/");
+}
+
+export async function updateCost(id: string, tripId: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const category = String(formData.get("category")) as TravelCostCategory;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const amount = Number(formData.get("amount"));
+  const currency = String(formData.get("currency") ?? "GBP");
+
+  const { error } = await supabase
+    .from("travel_costs")
+    .update({ category, description, amount, currency })
+    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath(`/travel/${tripId}`);

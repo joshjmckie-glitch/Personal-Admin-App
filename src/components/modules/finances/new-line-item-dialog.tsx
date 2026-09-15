@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 
 import { FormDialog } from "@/components/modules/form-dialog";
 import { Button } from "@/components/ui/button";
@@ -14,24 +14,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createLineItem } from "@/lib/actions/finances";
+import { createLineItem, updateLineItem } from "@/lib/actions/finances";
+import type { FinanceLineItemRow } from "@/lib/types/database";
 
-export function NewLineItemDialog({ paycheckId }: { paycheckId: string }) {
+export function NewLineItemDialog({
+  paycheckId,
+  lineItem,
+}: {
+  paycheckId: string;
+  lineItem?: FinanceLineItemRow;
+}) {
+  const isEdit = Boolean(lineItem);
+
   return (
     <FormDialog
-      title="Add line item"
-      submitLabel="Add item"
+      title={isEdit ? "Edit line item" : "Add line item"}
+      submitLabel={isEdit ? "Save changes" : "Add item"}
       trigger={
-        <Button type="button" variant="ghost" size="sm">
-          <Plus />
-          Add item
-        </Button>
+        isEdit ? (
+          <Button type="button" variant="ghost" size="icon" className="size-6" aria-label="Edit item">
+            <Pencil className="size-3.5 text-muted-foreground" />
+          </Button>
+        ) : (
+          <Button type="button" variant="ghost" size="sm">
+            <Plus />
+            Add item
+          </Button>
+        )
       }
-      onSubmit={(formData) => createLineItem(paycheckId, formData)}
+      onSubmit={(formData) =>
+        isEdit ? updateLineItem(lineItem!.id, formData) : createLineItem(paycheckId, formData)
+      }
     >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="category">Category</Label>
-        <Select name="category" defaultValue="subscription">
+        <Select name="category" defaultValue={lineItem?.category ?? "subscription"}>
           <SelectTrigger id="category">
             <SelectValue />
           </SelectTrigger>
@@ -46,14 +63,22 @@ export function NewLineItemDialog({ paycheckId }: { paycheckId: string }) {
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" required placeholder="Netflix" />
+        <Input id="name" name="name" required placeholder="Netflix" defaultValue={lineItem?.name} />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="amount">Amount</Label>
-        <Input id="amount" name="amount" type="number" step="0.01" required placeholder="12.99" />
+        <Input
+          id="amount"
+          name="amount"
+          type="number"
+          step="0.01"
+          required
+          placeholder="12.99"
+          defaultValue={lineItem?.amount}
+        />
       </div>
       <div className="flex items-center gap-2">
-        <Checkbox id="is_recurring" name="is_recurring" defaultChecked />
+        <Checkbox id="is_recurring" name="is_recurring" defaultChecked={lineItem?.is_recurring ?? true} />
         <Label htmlFor="is_recurring" className="font-normal">
           Recurring cost
         </Label>

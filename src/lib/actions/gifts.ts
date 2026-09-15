@@ -27,6 +27,19 @@ export async function createPerson(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function updatePerson(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const name = String(formData.get("name"));
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  const { error } = await supabase.from("gift_people").update({ name, notes }).eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/gifts");
+  revalidatePath("/");
+}
+
 export async function deletePerson(id: string) {
   const { supabase } = await requireUserId();
   const { error } = await supabase.from("gift_people").delete().eq("id", id);
@@ -50,6 +63,23 @@ export async function createGiftIdea(personId: string, formData: FormData) {
     expected_price: priceRaw ? Number(priceRaw) : null,
     notes,
   });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/gifts");
+  revalidatePath("/");
+}
+
+export async function updateGiftIdea(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const idea = String(formData.get("idea"));
+  const priceRaw = formData.get("expected_price");
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  const { error } = await supabase
+    .from("gift_ideas")
+    .update({ idea, expected_price: priceRaw ? Number(priceRaw) : null, notes })
+    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/gifts");
