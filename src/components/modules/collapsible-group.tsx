@@ -11,18 +11,20 @@ export function CollapsibleGroup({
   count,
   totalLabel,
   defaultOpen = false,
+  className,
   children,
 }: {
   label: string;
   count: number;
   totalLabel?: string;
   defaultOpen?: boolean;
+  className?: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-border/50 last:border-b-0">
+    <div className={cn("border-b border-border/50 last:border-b-0", className)}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

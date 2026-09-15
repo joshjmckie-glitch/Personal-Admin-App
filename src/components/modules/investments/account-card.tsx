@@ -21,6 +21,7 @@ import { ContributionDialog } from "@/components/modules/investments/contributio
 import { ContributionRow } from "@/components/modules/investments/contribution-row";
 import { HoldingDialog } from "@/components/modules/investments/holding-dialog";
 import { HoldingRow } from "@/components/modules/investments/holding-row";
+import { HoldingsPie } from "@/components/modules/investments/holdings-pie";
 import { deleteAccount, setAccountArchived } from "@/lib/actions/investments";
 import { formatCurrency } from "@/lib/utils";
 import type {
@@ -149,15 +150,19 @@ export function AccountCard({
         ) : null}
 
         {holdings.length > 0 ? (
-          <CollapsibleGroup
-            label="Holdings"
-            count={holdings.length}
-            totalLabel={formatCurrency(holdingsTotal, account.currency)}
-          >
-            {holdings.map((holding) => (
-              <HoldingRow key={holding.id} accountId={account.id} holding={holding} />
-            ))}
-          </CollapsibleGroup>
+          <div className="flex items-center gap-3">
+            <HoldingsPie holdings={holdings} />
+            <CollapsibleGroup
+              label="Holdings"
+              count={holdings.length}
+              totalLabel={formatCurrency(holdingsTotal, account.currency)}
+              className="flex-1"
+            >
+              {holdings.map((holding) => (
+                <HoldingRow key={holding.id} accountId={account.id} holding={holding} />
+              ))}
+            </CollapsibleGroup>
+          </div>
         ) : null}
 
         {contributions.length > 0 ? (

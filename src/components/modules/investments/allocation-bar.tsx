@@ -1,13 +1,5 @@
+import { SERIES_COLOR_VARS } from "@/lib/modules/chart-series-colors";
 import { formatCurrency } from "@/lib/utils";
-
-const SERIES_VARS = [
-  "var(--color-series-1)",
-  "var(--color-series-2)",
-  "var(--color-series-3)",
-  "var(--color-series-4)",
-  "var(--color-series-5)",
-  "var(--color-series-6)",
-];
 
 export function AllocationBar({
   breakdown,
@@ -36,7 +28,7 @@ export function AllocationBar({
               className="h-full first:rounded-l-full last:rounded-r-full"
               style={{
                 width: `${pct}%`,
-                backgroundColor: SERIES_VARS[i % SERIES_VARS.length],
+                backgroundColor: SERIES_COLOR_VARS[i % SERIES_COLOR_VARS.length],
                 marginRight: i < segments.length - 1 ? 2 : 0,
               }}
               title={`${segment.label}: ${formatCurrency(segment.value)} (${pct.toFixed(1)}%)`}
@@ -52,7 +44,7 @@ export function AllocationBar({
             <div key={segment.label} className="flex items-center gap-1.5 text-xs">
               <span
                 className="size-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: SERIES_VARS[i % SERIES_VARS.length] }}
+                style={{ backgroundColor: SERIES_COLOR_VARS[i % SERIES_COLOR_VARS.length] }}
               />
               <span className="truncate text-foreground">{segment.label}</span>
               <span className="ml-auto shrink-0 text-muted-foreground">{pct.toFixed(0)}%</span>

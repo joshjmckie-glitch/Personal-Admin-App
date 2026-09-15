@@ -34,8 +34,9 @@ export function NetWorthTrendChart({ series }: { series: { date: string; total: 
               border: "1px solid var(--color-border)",
               borderRadius: "var(--radius-md)",
               fontSize: 12,
-              color: "var(--color-popover-foreground)",
             }}
+            itemStyle={{ color: "var(--color-popover-foreground)" }}
+            labelStyle={{ color: "var(--color-popover-foreground)" }}
             cursor={{ stroke: "var(--color-border)", strokeWidth: 1 }}
           />
           <Area
