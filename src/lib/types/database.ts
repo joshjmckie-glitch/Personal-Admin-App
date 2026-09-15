@@ -187,6 +187,16 @@ export type CarMotRow = {
   created_at: string;
 };
 
+export type CarRoadTaxRow = {
+  id: string;
+  user_id: string;
+  vehicle_id: string;
+  price: number | null;
+  due_date: string;
+  notes: string | null;
+  created_at: string;
+};
+
 export type CarMaintenanceType = "service" | "tyre_change" | "repair";
 export type CarMaintenanceLogRow = {
   id: string;
@@ -365,6 +375,7 @@ export interface Database {
       >;
       car_insurance: TableDef<CarInsuranceRow, "id" | "created_at" | "provider" | "price" | "notes">;
       car_mot: TableDef<CarMotRow, "id" | "created_at" | "last_pass_date" | "notes">;
+      car_road_tax: TableDef<CarRoadTaxRow, "id" | "created_at" | "price" | "notes">;
       car_maintenance_log: TableDef<
         CarMaintenanceLogRow,
         "id" | "created_at" | "cost" | "mileage" | "notes"

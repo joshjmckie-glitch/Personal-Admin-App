@@ -6,11 +6,18 @@ import { DeleteButton } from "@/components/modules/delete-button";
 import { CountdownBadge } from "@/components/modules/car/countdown-badge";
 import { InsuranceDialog } from "@/components/modules/car/insurance-dialog";
 import { MotDialog } from "@/components/modules/car/mot-dialog";
+import { RoadTaxDialog } from "@/components/modules/car/road-tax-dialog";
 import { MaintenanceDialog } from "@/components/modules/car/maintenance-dialog";
 import { NewVehicleDialog } from "@/components/modules/car/new-vehicle-dialog";
 import { deleteVehicle, deleteMaintenanceEntry } from "@/lib/actions/car";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import type { CarInsuranceRow, CarMaintenanceLogRow, CarMotRow, CarVehicleRow } from "@/lib/types/database";
+import type {
+  CarInsuranceRow,
+  CarMaintenanceLogRow,
+  CarMotRow,
+  CarRoadTaxRow,
+  CarVehicleRow,
+} from "@/lib/types/database";
 
 const TYPE_LABEL: Record<string, string> = {
   service: "Service",
@@ -22,11 +29,13 @@ export function VehicleCard({
   vehicle,
   insurance,
   mot,
+  roadTax,
   maintenance,
 }: {
   vehicle: CarVehicleRow;
   insurance: CarInsuranceRow | null;
   mot: CarMotRow | null;
+  roadTax: CarRoadTaxRow | null;
   maintenance: CarMaintenanceLogRow[];
 }) {
   const title = [vehicle.make, vehicle.model].filter(Boolean).join(" ") || "Vehicle";
@@ -70,11 +79,24 @@ export function VehicleCard({
               <CountdownBadge date={mot?.due_date ?? null} />
             </div>
           </div>
+          <div className="col-span-2 rounded-lg border border-border/60 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Road tax</p>
+              {roadTax ? <RoadTaxDialog vehicleId={vehicle.id} record={roadTax} /> : null}
+            </div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="text-sm font-medium">
+                {roadTax?.price ? formatCurrency(roadTax.price) : "—"}
+              </p>
+              <CountdownBadge date={roadTax?.due_date ?? null} />
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <InsuranceDialog vehicleId={vehicle.id} />
           <MotDialog vehicleId={vehicle.id} />
+          <RoadTaxDialog vehicleId={vehicle.id} />
           <MaintenanceDialog vehicleId={vehicle.id} />
         </div>
 

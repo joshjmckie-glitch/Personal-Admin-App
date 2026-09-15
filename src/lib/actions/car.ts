@@ -117,6 +117,37 @@ export async function editMotRecord(id: string, formData: FormData) {
   revalidatePath("/");
 }
 
+function roadTaxFields(formData: FormData) {
+  return {
+    price: formData.get("price") ? Number(formData.get("price")) : null,
+    due_date: String(formData.get("due_date")),
+  };
+}
+
+/** Logs a new road tax renewal (keeps the previous one as history). */
+export async function updateRoadTax(vehicleId: string, formData: FormData) {
+  const { supabase, userId } = await requireUserId();
+
+  const { error } = await supabase
+    .from("car_road_tax")
+    .insert({ user_id: userId, vehicle_id: vehicleId, ...roadTaxFields(formData) });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/car");
+  revalidatePath("/");
+}
+
+/** Corrects the current road tax record in place (no new history row). */
+export async function editRoadTaxRecord(id: string, formData: FormData) {
+  const { supabase } = await requireUserId();
+
+  const { error } = await supabase.from("car_road_tax").update(roadTaxFields(formData)).eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/car");
+  revalidatePath("/");
+}
+
 function maintenanceFields(formData: FormData) {
   return {
     type: String(formData.get("type")) as CarMaintenanceType,

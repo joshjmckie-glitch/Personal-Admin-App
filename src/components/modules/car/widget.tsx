@@ -16,7 +16,7 @@ export async function CarWidget() {
     return <WidgetEmpty text="No vehicle added yet" />;
   }
 
-  const [{ data: mot }, { data: insurance }] = await Promise.all([
+  const [{ data: mot }, { data: insurance }, { data: roadTax }] = await Promise.all([
     supabase
       .from("car_mot")
       .select("due_date")
@@ -31,6 +31,13 @@ export async function CarWidget() {
       .order("renewal_date", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("car_road_tax")
+      .select("due_date")
+      .eq("vehicle_id", vehicle.id)
+      .order("due_date", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   return (
@@ -42,6 +49,10 @@ export async function CarWidget() {
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">Insurance</span>
         <CountdownBadge date={insurance?.renewal_date ?? null} />
+      </div>
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">Road tax</span>
+        <CountdownBadge date={roadTax?.due_date ?? null} />
       </div>
     </div>
   );

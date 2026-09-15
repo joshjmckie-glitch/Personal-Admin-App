@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NewVehicleDialog } from "@/components/modules/car/new-vehicle-dialog";
 import { VehicleCard } from "@/components/modules/car/vehicle-card";
-import type { CarInsuranceRow, CarMaintenanceLogRow, CarMotRow } from "@/lib/types/database";
+import type { CarInsuranceRow, CarMaintenanceLogRow, CarMotRow, CarRoadTaxRow } from "@/lib/types/database";
 
 export default async function CarPage() {
   const supabase = await createClient();
@@ -15,10 +15,11 @@ export default async function CarPage() {
 
   const latestInsurance = new Map<string, CarInsuranceRow>();
   const latestMot = new Map<string, CarMotRow>();
+  const latestRoadTax = new Map<string, CarRoadTaxRow>();
   let maintenanceByVehicle = new Map<string, CarMaintenanceLogRow[]>();
 
   if (vehicleIds.length > 0) {
-    const [{ data: insurance }, { data: mot }, { data: maintenance }] = await Promise.all([
+    const [{ data: insurance }, { data: mot }, { data: roadTax }, { data: maintenance }] = await Promise.all([
       supabase
         .from("car_insurance")
         .select("*")
@@ -26,6 +27,11 @@ export default async function CarPage() {
         .order("renewal_date", { ascending: false }),
       supabase
         .from("car_mot")
+        .select("*")
+        .in("vehicle_id", vehicleIds)
+        .order("due_date", { ascending: false }),
+      supabase
+        .from("car_road_tax")
         .select("*")
         .in("vehicle_id", vehicleIds)
         .order("due_date", { ascending: false }),
@@ -41,6 +47,9 @@ export default async function CarPage() {
     }
     for (const row of mot ?? []) {
       if (!latestMot.has(row.vehicle_id)) latestMot.set(row.vehicle_id, row);
+    }
+    for (const row of roadTax ?? []) {
+      if (!latestRoadTax.has(row.vehicle_id)) latestRoadTax.set(row.vehicle_id, row);
     }
     maintenanceByVehicle = (maintenance ?? []).reduce((map, row) => {
       const list = map.get(row.vehicle_id) ?? [];
@@ -71,6 +80,7 @@ export default async function CarPage() {
             vehicle={vehicle}
             insurance={latestInsurance.get(vehicle.id) ?? null}
             mot={latestMot.get(vehicle.id) ?? null}
+            roadTax={latestRoadTax.get(vehicle.id) ?? null}
             maintenance={maintenanceByVehicle.get(vehicle.id) ?? []}
           />
         ))
