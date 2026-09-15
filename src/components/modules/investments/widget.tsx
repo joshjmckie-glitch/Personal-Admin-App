@@ -5,13 +5,16 @@ import { formatCurrency } from "@/lib/utils";
 export async function InvestmentsWidget() {
   const supabase = await createClient();
 
-  const { data: accounts } = await supabase.from("investment_accounts").select("current_value, currency");
+  const { data: accounts } = await supabase
+    .from("investment_accounts")
+    .select("current_value, archived")
+    .eq("archived", false);
 
   if (!accounts || accounts.length === 0) {
     return <WidgetEmpty text="No accounts yet" />;
   }
 
-  const total = accounts.filter((a) => a.currency === "GBP").reduce((sum, a) => sum + a.current_value, 0);
+  const total = accounts.reduce((sum, a) => sum + a.current_value, 0);
 
   return (
     <div>

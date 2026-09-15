@@ -61,25 +61,43 @@ export type FinanceSalarySettingsRow = {
 // ---------------------------------------------------------------------------
 // Investments
 // ---------------------------------------------------------------------------
-export type InvestmentProvider = "chase" | "moneybox" | "trading212" | "coinbase" | "other";
-export type InvestmentAccountType =
-  | "cash_savings"
-  | "isa"
-  | "brokerage"
-  | "crypto"
-  | "pension"
-  | "other";
+// provider and account_type are free text (not a fixed enum) — accounts get
+// opened, closed and renamed often, so the UI offers suggestions from past
+// entries rather than a hardcoded list.
 export type InvestmentSyncMode = "manual" | "trading212" | "coinbase";
 
 export type InvestmentAccountRow = {
   id: string;
   user_id: string;
   name: string;
-  provider: InvestmentProvider;
-  account_type: InvestmentAccountType;
+  provider: string;
+  account_type: string;
   sync_mode: InvestmentSyncMode;
   current_value: number;
   currency: string;
+  notes: string | null;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InvestmentContributionRow = {
+  id: string;
+  user_id: string;
+  account_id: string;
+  amount: number;
+  contributed_on: string;
+  notes: string | null;
+  created_at: string;
+};
+
+export type InvestmentHoldingRow = {
+  id: string;
+  user_id: string;
+  account_id: string;
+  name: string;
+  quantity: number | null;
+  value: number;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -314,6 +332,15 @@ export interface Database {
         | "sync_mode"
         | "currency"
         | "notes"
+        | "archived"
+      >;
+      investment_contributions: TableDef<
+        InvestmentContributionRow,
+        "id" | "created_at" | "contributed_on" | "notes"
+      >;
+      investment_holdings: TableDef<
+        InvestmentHoldingRow,
+        "id" | "created_at" | "updated_at" | "quantity" | "notes"
       >;
       investment_value_history: TableDef<
         InvestmentValueHistoryRow,

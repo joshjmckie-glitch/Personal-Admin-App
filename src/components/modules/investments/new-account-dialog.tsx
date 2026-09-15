@@ -7,17 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ComboInput } from "@/components/ui/combo-input";
 import { createAccount, updateAccount } from "@/lib/actions/investments";
 import type { InvestmentAccountRow } from "@/lib/types/database";
 
-export function NewAccountDialog({ account }: { account?: InvestmentAccountRow }) {
+export function NewAccountDialog({
+  account,
+  providerSuggestions,
+  typeSuggestions,
+}: {
+  account?: InvestmentAccountRow;
+  providerSuggestions: string[];
+  typeSuggestions: string[];
+}) {
   const isEdit = Boolean(account);
 
   return (
@@ -43,34 +45,25 @@ export function NewAccountDialog({ account }: { account?: InvestmentAccountRow }
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="provider">Provider</Label>
-          <Select name="provider" defaultValue={account?.provider ?? "other"}>
-            <SelectTrigger id="provider">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="chase">Chase</SelectItem>
-              <SelectItem value="moneybox">Moneybox</SelectItem>
-              <SelectItem value="trading212">Trading 212</SelectItem>
-              <SelectItem value="coinbase">Coinbase</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-            </SelectContent>
-          </Select>
+          <ComboInput
+            id="provider"
+            name="provider"
+            required
+            placeholder="Trading 212"
+            defaultValue={account?.provider}
+            suggestions={providerSuggestions}
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="account_type">Type</Label>
-          <Select name="account_type" defaultValue={account?.account_type ?? "cash_savings"}>
-            <SelectTrigger id="account_type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cash_savings">Cash savings</SelectItem>
-              <SelectItem value="isa">ISA</SelectItem>
-              <SelectItem value="brokerage">Brokerage</SelectItem>
-              <SelectItem value="crypto">Crypto</SelectItem>
-              <SelectItem value="pension">Pension</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
-            </SelectContent>
-          </Select>
+          <ComboInput
+            id="account_type"
+            name="account_type"
+            required
+            placeholder="Stocks & shares"
+            defaultValue={account?.account_type}
+            suggestions={typeSuggestions}
+          />
         </div>
       </div>
       {isEdit ? (

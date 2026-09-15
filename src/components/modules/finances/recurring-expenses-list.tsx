@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { CategoryGroup } from "@/components/modules/finances/category-group";
+import { CollapsibleGroup } from "@/components/modules/collapsible-group";
 import { RecurringExpenseDialog } from "@/components/modules/finances/recurring-expense-dialog";
 import { RecurringExpenseRow } from "@/components/modules/finances/recurring-expense-row";
 import { CATEGORY_LABEL, CATEGORY_ORDER } from "@/lib/modules/finance-categories";
@@ -38,7 +38,7 @@ export function RecurringExpensesList({ expenses }: { expenses: FinanceRecurring
             groups.map(({ category, items }) => {
               const groupTotal = items.filter((e) => e.active).reduce((sum, e) => sum + e.amount, 0);
               return (
-                <CategoryGroup
+                <CollapsibleGroup
                   key={category}
                   label={CATEGORY_LABEL[category]}
                   count={items.length}
@@ -47,7 +47,7 @@ export function RecurringExpensesList({ expenses }: { expenses: FinanceRecurring
                   {items.map((expense) => (
                     <RecurringExpenseRow key={expense.id} expense={expense} />
                   ))}
-                </CategoryGroup>
+                </CollapsibleGroup>
               );
             })
           )}

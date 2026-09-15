@@ -65,6 +65,17 @@ Finances → Expenses is a standing list of monthly outgoings — subscriptions,
 
 This replaced an earlier per-paycheck "line item" design (`finance_line_items`, dropped in `supabase/migrations/0004_recurring_expenses.sql`) that required re-adding the same recurring costs under every single paycheck — the new `finance_recurring_expenses` table is a single standing list instead.
 
+## Investments
+
+Rebuilt for transparency and to stay flexible as accounts open and close over time (`supabase/migrations/0005_investments_redesign.sql`):
+
+- **Free-text provider and account type.** No longer a fixed dropdown — `provider` and `account_type` are plain text with autocomplete suggestions (`src/components/ui/combo-input.tsx`) drawn from your own past entries plus a short default list (`src/lib/modules/investment-suggestions.ts`). Add or rename anything without a code change.
+- **Archive instead of delete.** Closing an account keeps its value/contribution/holding history — it just moves to a collapsed "Archived accounts" section and drops out of the total and allocation chart.
+- **Contributions vs. growth** (`investment_contributions`). Log money paid in (or withdrawn, as a negative amount); each account with at least one contribution shows paid-in vs. current value as a gain/loss figure and percentage.
+- **Holdings** (`investment_holdings`). Optional per-account breakdown of what's actually inside it (ticker/name, quantity, value) — informational only, doesn't drive `current_value` (that's still set via "Log value", which keeps the trend chart accurate).
+- **Portfolio summary.** A combined net-worth trend chart across all active accounts (forward-filling each account's last known value between its own log dates — `src/lib/modules/net-worth-series.ts`) and a part-to-whole allocation bar by account type.
+- **Chart colors are validated, not eyeballed.** The categorical series colors (`--series-1` … `--series-6` in `globals.css`) passed the dataviz skill's CVD-safety and contrast checks (`validate_palette.js`) for both themes before being wired in — a part-to-whole stacked bar was used instead of a donut per that skill's form guidance.
+
 ## Live API integrations (not yet wired up)
 
 Per the build brief, these are deliberately left for later, once manual entry is solid:

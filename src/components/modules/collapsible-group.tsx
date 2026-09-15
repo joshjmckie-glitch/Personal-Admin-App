@@ -6,7 +6,7 @@ import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-export function CategoryGroup({
+export function CollapsibleGroup({
   label,
   count,
   totalLabel,
