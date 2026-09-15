@@ -291,13 +291,14 @@ export type GiftPersonRow = {
   created_at: string;
 };
 
-export type GiftStatus = "idea" | "purchased" | "given";
+export type GiftStatus = "idea" | "purchased";
 export type GiftIdeaRow = {
   id: string;
   user_id: string;
   person_id: string;
   idea: string;
   expected_price: number | null;
+  actual_price: number | null;
   status: GiftStatus;
   notes: string | null;
   created_at: string;
@@ -395,7 +396,7 @@ export interface Database {
       gift_people: TableDef<GiftPersonRow, "id" | "created_at" | "notes">;
       gift_ideas: TableDef<
         GiftIdeaRow,
-        "id" | "created_at" | "expected_price" | "status" | "notes"
+        "id" | "created_at" | "expected_price" | "actual_price" | "status" | "notes"
       >;
     };
     Views: { [_ in never]: never };

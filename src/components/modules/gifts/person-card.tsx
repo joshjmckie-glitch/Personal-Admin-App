@@ -3,25 +3,15 @@
 import { useTransition } from "react";
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { CollapsibleGroup } from "@/components/modules/collapsible-group";
 import { DeleteButton } from "@/components/modules/delete-button";
 import { NewIdeaDialog } from "@/components/modules/gifts/new-idea-dialog";
 import { NewPersonDialog } from "@/components/modules/gifts/new-person-dialog";
-import { deleteGiftIdea, deletePerson, setGiftStatus } from "@/lib/actions/gifts";
-import { formatCurrency } from "@/lib/utils";
-import type { GiftIdeaRow, GiftPersonRow, GiftStatus } from "@/lib/types/database";
-
-const STATUS_VARIANT: Record<GiftStatus, "outline" | "secondary" | "success"> = {
-  idea: "outline",
-  purchased: "secondary",
-  given: "success",
-};
-
-const NEXT_STATUS: Record<GiftStatus, GiftStatus> = {
-  idea: "purchased",
-  purchased: "given",
-  given: "idea",
-};
+import { MarkBoughtDialog } from "@/components/modules/gifts/mark-bought-dialog";
+import { TickButton } from "@/components/modules/gifts/tick-button";
+import { deleteGiftIdea, deletePerson, markGiftAsIdea } from "@/lib/actions/gifts";
+import { cn, formatCurrency } from "@/lib/utils";
+import type { GiftIdeaRow, GiftPersonRow } from "@/lib/types/database";
 
 export function PersonCard({ person, ideas }: { person: GiftPersonRow; ideas: GiftIdeaRow[] }) {
   const priced = ideas.filter((i) => i.expected_price != null);
@@ -47,7 +37,15 @@ export function PersonCard({ person, ideas }: { person: GiftPersonRow; ideas: Gi
         {ideas.length === 0 ? (
           <p className="text-sm text-muted-foreground">No ideas yet.</p>
         ) : (
-          ideas.map((idea) => <IdeaRow key={idea.id} idea={idea} />)
+          <CollapsibleGroup
+            label="Ideas"
+            count={ideas.length}
+            totalLabel={avg != null ? `avg ${formatCurrency(avg)}` : undefined}
+          >
+            {ideas.map((idea) => (
+              <IdeaRow key={idea.id} idea={idea} />
+            ))}
+          </CollapsibleGroup>
         )}
         <NewIdeaDialog personId={person.id} />
       </CardContent>
@@ -57,25 +55,38 @@ export function PersonCard({ person, ideas }: { person: GiftPersonRow; ideas: Gi
 
 function IdeaRow({ idea }: { idea: GiftIdeaRow }) {
   const [pending, startTransition] = useTransition();
+  const purchased = idea.status === "purchased";
 
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-border/50 py-2 last:border-b-0">
-      <div className="min-w-0">
-        <p className="truncate text-sm">{idea.idea}</p>
-        {idea.expected_price != null ? (
-          <p className="text-xs text-muted-foreground">{formatCurrency(idea.expected_price)}</p>
-        ) : null}
+    <div
+      className={cn(
+        "flex items-center justify-between gap-2 border-b border-border/50 py-2 last:border-b-0",
+        purchased && "opacity-50"
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        {purchased ? (
+          <TickButton
+            checked
+            disabled={pending}
+            aria-label="Mark as not bought"
+            onClick={() => startTransition(() => markGiftAsIdea(idea.id))}
+          />
+        ) : (
+          <MarkBoughtDialog idea={idea} />
+        )}
+        <div className="min-w-0">
+          <p className={cn("truncate text-sm", purchased && "line-through")}>{idea.idea}</p>
+          {purchased ? (
+            idea.actual_price != null ? (
+              <p className="text-xs text-muted-foreground">Bought for {formatCurrency(idea.actual_price)}</p>
+            ) : null
+          ) : idea.expected_price != null ? (
+            <p className="text-xs text-muted-foreground">{formatCurrency(idea.expected_price)}</p>
+          ) : null}
+        </div>
       </div>
       <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => startTransition(() => setGiftStatus(idea.id, NEXT_STATUS[idea.status]))}
-        >
-          <Badge variant={STATUS_VARIANT[idea.status]} className="cursor-pointer capitalize">
-            {idea.status}
-          </Badge>
-        </button>
         <NewIdeaDialog personId={idea.person_id} idea={idea} />
         <DeleteButton onDelete={() => deleteGiftIdea(idea.id)} label="Delete idea" />
       </div>

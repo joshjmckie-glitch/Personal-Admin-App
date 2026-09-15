@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import type { GiftStatus } from "@/lib/types/database";
 
 async function requireUserId() {
   const supabase = await createClient();
@@ -86,9 +85,29 @@ export async function updateGiftIdea(id: string, formData: FormData) {
   revalidatePath("/");
 }
 
-export async function setGiftStatus(id: string, status: GiftStatus) {
+export async function markGiftPurchased(id: string, formData: FormData) {
   const { supabase } = await requireUserId();
-  const { error } = await supabase.from("gift_ideas").update({ status }).eq("id", id);
+
+  const priceRaw = formData.get("actual_price");
+  const actualPrice = priceRaw ? Number(priceRaw) : null;
+
+  const { error } = await supabase
+    .from("gift_ideas")
+    .update({ status: "purchased", actual_price: actualPrice })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/gifts");
+  revalidatePath("/");
+}
+
+export async function markGiftAsIdea(id: string) {
+  const { supabase } = await requireUserId();
+
+  const { error } = await supabase
+    .from("gift_ideas")
+    .update({ status: "idea", actual_price: null })
+    .eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/gifts");
