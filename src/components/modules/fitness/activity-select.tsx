@@ -1,6 +1,7 @@
 "use client";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ACTIVITY_LABEL, ACTIVITY_ORDER } from "@/lib/modules/fitness-activities";
 
 export function ActivitySelect({ defaultValue = "running" }: { defaultValue?: string }) {
   return (
@@ -9,20 +10,12 @@ export function ActivitySelect({ defaultValue = "running" }: { defaultValue?: st
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="running">Running</SelectItem>
-        <SelectItem value="cycling">Cycling</SelectItem>
-        <SelectItem value="kettlebell">Kettlebell</SelectItem>
-        <SelectItem value="strength">Strength</SelectItem>
-        <SelectItem value="other">Other</SelectItem>
+        {ACTIVITY_ORDER.map((activity) => (
+          <SelectItem key={activity} value={activity}>
+            {ACTIVITY_LABEL[activity]}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );
 }
-
-export const ACTIVITY_LABEL: Record<string, string> = {
-  running: "Running",
-  cycling: "Cycling",
-  kettlebell: "Kettlebell",
-  strength: "Strength",
-  other: "Other",
-};

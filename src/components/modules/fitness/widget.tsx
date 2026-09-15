@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { WidgetEmpty } from "@/components/dashboard/widget-card";
-import { ACTIVITY_LABEL } from "@/components/modules/fitness/activity-select";
+import { ACTIVITY_LABEL } from "@/lib/modules/fitness-activities";
 
 function startOfWeek() {
   const now = new Date();

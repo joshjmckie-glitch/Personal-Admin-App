@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createRecurringExpense, updateRecurringExpense } from "@/lib/actions/finances";
+import { CATEGORY_LABEL, CATEGORY_ORDER } from "@/lib/modules/finance-categories";
 import type { FinanceRecurringExpenseRow } from "@/lib/types/database";
 
 export function RecurringExpenseDialog({ expense }: { expense?: FinanceRecurringExpenseRow }) {
@@ -53,11 +54,11 @@ export function RecurringExpenseDialog({ expense }: { expense?: FinanceRecurring
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="subscription">Subscription</SelectItem>
-            <SelectItem value="savings">Savings</SelectItem>
-            <SelectItem value="rent">Rent</SelectItem>
-            <SelectItem value="bills">Bills</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
+            {CATEGORY_ORDER.map((category) => (
+              <SelectItem key={category} value={category}>
+                {CATEGORY_LABEL[category]}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

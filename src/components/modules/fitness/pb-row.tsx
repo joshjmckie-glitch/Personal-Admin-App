@@ -1,7 +1,7 @@
 "use client";
 
 import { DeleteButton } from "@/components/modules/delete-button";
-import { ACTIVITY_LABEL } from "@/components/modules/fitness/activity-select";
+import { ACTIVITY_LABEL } from "@/lib/modules/fitness-activities";
 import { NewPbDialog } from "@/components/modules/fitness/new-pb-dialog";
 import { deletePersonalBest } from "@/lib/actions/fitness";
 import { formatDate } from "@/lib/utils";

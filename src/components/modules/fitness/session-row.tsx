@@ -5,7 +5,7 @@ import { useTransition } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/modules/delete-button";
-import { ACTIVITY_LABEL } from "@/components/modules/fitness/activity-select";
+import { ACTIVITY_LABEL } from "@/lib/modules/fitness-activities";
 import { NewSessionDialog } from "@/components/modules/fitness/new-session-dialog";
 import { deleteSession, toggleSessionCompleted } from "@/lib/actions/fitness";
 import { cn, formatDate } from "@/lib/utils";
