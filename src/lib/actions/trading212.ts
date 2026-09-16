@@ -18,11 +18,12 @@ function baseUrl(environment: InvestmentConnectionEnvironment) {
   return environment === "demo" ? "https://demo.trading212.com" : "https://live.trading212.com";
 }
 
-// Trading 212 issues a single API key (no separate secret), sent as the raw
-// value of the Authorization header — no "Bearer"/"Basic" prefix.
-async function t212Fetch(environment: InvestmentConnectionEnvironment, apiKey: string, path: string) {
+// Trading 212 issues an API key + a separate secret and expects HTTP Basic
+// auth — the ready "Basic <base64>" header value comes from the
+// get_trading212_api_key RPC, which does the encoding server-side.
+async function t212Fetch(environment: InvestmentConnectionEnvironment, authorizationHeader: string, path: string) {
   const response = await fetch(`${baseUrl(environment)}${path}`, {
-    headers: { Authorization: apiKey },
+    headers: { Authorization: authorizationHeader },
     cache: "no-store",
   });
 
@@ -63,19 +64,28 @@ export async function connectTrading212(accountId: string, formData: FormData) {
   const { supabase } = await requireUserId();
 
   const apiKey = String(formData.get("api_key") ?? "").trim();
+  const apiSecret = String(formData.get("api_secret") ?? "").trim();
   const environment = (String(formData.get("environment") ?? "live") ||
     "live") as InvestmentConnectionEnvironment;
   if (!apiKey) throw new Error("API key is required");
+  if (!apiSecret) throw new Error("API secret is required");
 
   const { error: connectError } = await supabase.rpc("connect_trading212", {
     p_account_id: accountId,
     p_api_key: apiKey,
+    p_api_secret: apiSecret,
     p_environment: environment,
   });
   if (connectError) throw new Error(connectError.message);
 
   try {
-    await t212Fetch(environment, apiKey, "/api/v0/equity/account/info");
+    const { data: connections, error: keyError } = await supabase.rpc("get_trading212_api_key", {
+      p_account_id: accountId,
+    });
+    if (keyError) throw new Error(keyError.message);
+    const connection = connections?.[0];
+    if (!connection) throw new Error("Failed to save connection.");
+    await t212Fetch(connection.environment, connection.authorization_header, "/api/v0/equity/account/info");
   } catch (err) {
     await supabase.rpc("disconnect_trading212", { p_account_id: accountId });
     throw err;
@@ -104,12 +114,12 @@ export async function syncTrading212(accountId: string) {
   const connection = connections?.[0];
   if (!connection) throw new Error("This account isn't connected to Trading 212.");
 
-  const { api_key: apiKey, environment } = connection;
+  const { authorization_header: authorizationHeader, environment } = connection;
 
   try {
     const [positionsRaw, cashRaw] = await Promise.all([
-      t212Fetch(environment, apiKey, "/api/v0/equity/portfolio"),
-      t212Fetch(environment, apiKey, "/api/v0/equity/account/cash"),
+      t212Fetch(environment, authorizationHeader, "/api/v0/equity/portfolio"),
+      t212Fetch(environment, authorizationHeader, "/api/v0/equity/account/cash"),
     ]);
 
     if (!isPositionArray(positionsRaw)) throw new Error("Unexpected response from Trading 212 (portfolio).");

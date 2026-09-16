@@ -31,8 +31,13 @@ export function Trading212ConnectDialog({ accountId }: { accountId: string }) {
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="api_key">API key</Label>
         <Input id="api_key" name="api_key" type="password" required placeholder="Paste your API key" />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="api_secret">API secret</Label>
+        <Input id="api_secret" name="api_secret" type="password" required placeholder="Paste your API secret" />
         <p className="text-xs text-muted-foreground">
-          Generate one in the Trading 212 app under Settings → API (Open API).
+          Generate both in the Trading 212 app under Settings → API (Open API) — enable the Portfolio and
+          Account data permissions.
         </p>
       </div>
       <div className="flex flex-col gap-1.5">

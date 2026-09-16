@@ -430,12 +430,21 @@ export interface Database {
     Views: { [_ in never]: never };
     Functions: {
       connect_trading212: {
-        Args: { p_account_id: string; p_api_key: string; p_environment: string };
+        Args: {
+          p_account_id: string;
+          p_api_key: string;
+          p_api_secret: string;
+          p_environment: string;
+        };
         Returns: string;
       };
       get_trading212_api_key: {
         Args: { p_account_id: string };
-        Returns: { api_key: string; environment: InvestmentConnectionEnvironment; connection_id: string }[];
+        Returns: {
+          authorization_header: string;
+          environment: InvestmentConnectionEnvironment;
+          connection_id: string;
+        }[];
       };
       disconnect_trading212: {
         Args: { p_account_id: string };
