@@ -226,7 +226,15 @@ async function syncTrading212Impl(accountId: string) {
 
     await supabase
       .from("investment_connections")
-      .update({ last_synced_at: new Date().toISOString(), last_sync_error: null })
+      .update({
+        last_synced_at: new Date().toISOString(),
+        // TEMPORARY: capturing the raw shape of one real position so the
+        // exact field names for the account-currency-converted value can be
+        // confirmed, since Trading 212's docs are unreachable from the dev
+        // sandbox and the last guess (walletImpact) was wrong. Reverted
+        // immediately after this is read back.
+        last_sync_error: `DEBUG ${JSON.stringify(positionsRaw[0])}`,
+      })
       .eq("account_id", accountId);
   } catch (err) {
     const message = errorMessage(err, "Sync failed");
