@@ -30,22 +30,22 @@ export function Trading212SyncControls({
 
   function handleSync() {
     startSync(async () => {
-      try {
-        await syncTrading212(accountId);
+      const result = await syncTrading212(accountId);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
         toast.success("Synced with Trading 212");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Sync failed");
       }
     });
   }
 
   function handleDisconnect() {
     startDisconnect(async () => {
-      try {
-        await disconnectTrading212(accountId);
+      const result = await disconnectTrading212(accountId);
+      if (result?.error) {
+        toast.error(result.error);
+      } else {
         toast.success("Disconnected from Trading 212");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to disconnect");
       }
     });
   }

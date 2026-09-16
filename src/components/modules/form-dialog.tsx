@@ -25,7 +25,12 @@ export function FormDialog({
   triggerLabel?: string;
   trigger?: ReactNode;
   children: ReactNode;
-  onSubmit: (formData: FormData) => Promise<void>;
+  // Server Actions redact every thrown error's message in production (Next
+  // can't tell a safe error from one leaking secrets), so an action that
+  // needs a real message on failure must return { error } instead of
+  // throwing — this stays optional so actions that just throw still work
+  // exactly as before, they simply keep the generic fallback message.
+  onSubmit: (formData: FormData) => Promise<void | { error: string }>;
   submitLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -36,7 +41,11 @@ export function FormDialog({
     setError(null);
     startTransition(async () => {
       try {
-        await onSubmit(formData);
+        const result = await onSubmit(formData);
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
         setOpen(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");

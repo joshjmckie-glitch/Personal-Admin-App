@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { InvestmentConnectionEnvironment } from "@/lib/types/database";
 
+type ActionResult = void | { error: string };
+
 async function requireUserId() {
   const supabase = await createClient();
   const {
@@ -18,10 +20,6 @@ function baseUrl(environment: InvestmentConnectionEnvironment) {
   return environment === "demo" ? "https://demo.trading212.com" : "https://live.trading212.com";
 }
 
-// Next.js redacts any exception that isn't a deliberately-thrown Error before
-// it reaches the client, replacing it with a generic "Server Components
-// render" message — so every exit path here must funnel through a clean,
-// readable Error rather than let a raw fetch/JSON/network exception escape.
 function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback;
 }
@@ -78,7 +76,14 @@ function isCash(value: unknown): value is Trading212Cash {
   return Boolean(value) && typeof value === "object" && typeof (value as Trading212Cash).free === "number";
 }
 
-export async function connectTrading212(accountId: string, formData: FormData) {
+// Next.js redacts every thrown Server Action error's message in production —
+// it can't tell a safe error from one leaking secrets, so it always hides
+// it behind a generic digest. The only supported way to get a real message
+// to the client is to catch everything internally and return it as data, so
+// each exported action below is a thin try/catch around an *Impl function
+// that's free to throw normally for readability.
+
+async function connectTrading212Impl(accountId: string, formData: FormData) {
   const { supabase } = await requireUserId();
 
   const apiKey = String(formData.get("api_key") ?? "").trim();
@@ -108,7 +113,7 @@ export async function connectTrading212(accountId: string, formData: FormData) {
     try {
       await supabase.rpc("disconnect_trading212", { p_account_id: accountId });
     } catch {
-      // Best-effort rollback — the connect error below is the one that matters.
+      // Best-effort rollback — the error below is the one that matters.
     }
     throw new Error(errorMessage(err, "Couldn't verify that key/secret with Trading 212."));
   }
@@ -117,7 +122,15 @@ export async function connectTrading212(accountId: string, formData: FormData) {
   revalidatePath("/");
 }
 
-export async function disconnectTrading212(accountId: string) {
+export async function connectTrading212(accountId: string, formData: FormData): Promise<ActionResult> {
+  try {
+    await connectTrading212Impl(accountId, formData);
+  } catch (err) {
+    return { error: errorMessage(err, "Couldn't connect to Trading 212.") };
+  }
+}
+
+async function disconnectTrading212Impl(accountId: string) {
   const { supabase } = await requireUserId();
   const { error } = await supabase.rpc("disconnect_trading212", { p_account_id: accountId });
   if (error) throw new Error(error.message);
@@ -126,7 +139,15 @@ export async function disconnectTrading212(accountId: string) {
   revalidatePath("/");
 }
 
-export async function syncTrading212(accountId: string) {
+export async function disconnectTrading212(accountId: string): Promise<ActionResult> {
+  try {
+    await disconnectTrading212Impl(accountId);
+  } catch (err) {
+    return { error: errorMessage(err, "Couldn't disconnect Trading 212.") };
+  }
+}
+
+async function syncTrading212Impl(accountId: string) {
   const { supabase, userId } = await requireUserId();
 
   const { data: connections, error: keyError } = await supabase.rpc("get_trading212_api_key", {
@@ -199,4 +220,12 @@ export async function syncTrading212(accountId: string) {
 
   revalidatePath("/investments");
   revalidatePath("/");
+}
+
+export async function syncTrading212(accountId: string): Promise<ActionResult> {
+  try {
+    await syncTrading212Impl(accountId);
+  } catch (err) {
+    return { error: errorMessage(err, "Sync failed.") };
+  }
 }
