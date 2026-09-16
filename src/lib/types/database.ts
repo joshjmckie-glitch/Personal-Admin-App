@@ -125,6 +125,15 @@ export type InvestmentConnectionRow = {
   created_at: string;
 };
 
+// Shared reference cache (ticker -> trading currency) used to convert
+// Trading 212 holding values into the account's currency — not per-user
+// data, see supabase/migrations/0011_investment_instrument_currency_cache.sql.
+export type InvestmentInstrumentCurrencyRow = {
+  ticker: string;
+  currency_code: string;
+  updated_at: string;
+};
+
 // ---------------------------------------------------------------------------
 // Fitness
 // ---------------------------------------------------------------------------
@@ -374,6 +383,7 @@ export interface Database {
         InvestmentConnectionRow,
         "id" | "created_at" | "last_synced_at" | "last_sync_error"
       >;
+      investment_instrument_currency: TableDef<InvestmentInstrumentCurrencyRow, "updated_at">;
       fitness_goals: TableDef<
         FitnessGoalRow,
         "id" | "created_at" | "description" | "target_date" | "status"

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { InvestmentConnectionEnvironment } from "@/lib/types/database";
 
 type ActionResult = void | { error: string };
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 async function requireUserId() {
   const supabase = await createClient();
@@ -55,12 +56,7 @@ async function t212Fetch(environment: InvestmentConnectionEnvironment, authoriza
   }
 }
 
-type Trading212Position = {
-  ticker: string;
-  quantity: number;
-  currentPrice: number;
-  walletImpact?: { currentValue?: number };
-};
+type Trading212Position = { ticker: string; quantity: number; currentPrice: number };
 type Trading212Cash = { free: number };
 
 function isPositionArray(value: unknown): value is Trading212Position[] {
@@ -81,15 +77,77 @@ function isCash(value: unknown): value is Trading212Cash {
   return Boolean(value) && typeof value === "object" && typeof (value as Trading212Cash).free === "number";
 }
 
-// currentPrice is in the instrument's own trading currency (USD, EUR, ...),
-// not the account's currency — walletImpact.currentValue is Trading 212's
-// own figure already converted to the account currency (GBP here), and is
-// what actually matches the value shown in the Trading 212 app. Only fall
-// back to a naive quantity × currentPrice for the (unexpected) case where
-// walletImpact is missing from the response.
-function positionValue(p: Trading212Position) {
-  const converted = p.walletImpact?.currentValue;
-  return typeof converted === "number" && Number.isFinite(converted) ? converted : p.quantity * p.currentPrice;
+// currentPrice is in the instrument's own trading currency (USD for US
+// stocks, EUR for Euronext-listed ones, ...), not the account's currency —
+// confirmed empirically, the position response has no converted-value field
+// at all. Look up each ticker's currency (cached in
+// investment_instrument_currency so this rarely needs to hit Trading 212's
+// heavily rate-limited metadata endpoint again) and convert with a live FX
+// rate. Best-effort throughout: any failure here falls back to treating the
+// native price as GBP rather than failing the whole sync.
+async function getInstrumentCurrencies(
+  supabase: SupabaseClient,
+  environment: InvestmentConnectionEnvironment,
+  authorizationHeader: string,
+  tickers: string[]
+): Promise<Record<string, string>> {
+  const { data: cached } = await supabase
+    .from("investment_instrument_currency")
+    .select("ticker, currency_code")
+    .in("ticker", tickers);
+
+  const currencyByTicker: Record<string, string> = {};
+  for (const row of cached ?? []) currencyByTicker[row.ticker] = row.currency_code;
+
+  const missing = tickers.filter((t) => !(t in currencyByTicker));
+  if (missing.length === 0) return currencyByTicker;
+
+  let instrumentsRaw: unknown;
+  try {
+    instrumentsRaw = await t212Fetch(environment, authorizationHeader, "/api/v0/equity/metadata/instruments");
+  } catch {
+    return currencyByTicker;
+  }
+  if (!Array.isArray(instrumentsRaw)) return currencyByTicker;
+
+  const toUpsert: { ticker: string; currency_code: string }[] = [];
+  for (const raw of instrumentsRaw) {
+    const ticker = (raw as { ticker?: string })?.ticker;
+    const currencyCode = (raw as { currencyCode?: string })?.currencyCode;
+    if (ticker && currencyCode && missing.includes(ticker)) {
+      currencyByTicker[ticker] = currencyCode;
+      toUpsert.push({ ticker, currency_code: currencyCode });
+    }
+  }
+
+  if (toUpsert.length > 0) {
+    await supabase.from("investment_instrument_currency").upsert(toUpsert);
+  }
+
+  return currencyByTicker;
+}
+
+async function fetchFxRatesFromGbp(currencies: string[]): Promise<Record<string, number>> {
+  const unique = [...new Set(currencies)].filter((c) => c && c !== "GBP");
+  if (unique.length === 0) return {};
+
+  try {
+    const response = await fetch(
+      `https://api.frankfurter.app/latest?from=GBP&to=${unique.join(",")}`,
+      { cache: "no-store" }
+    );
+    if (!response.ok) return {};
+    const data = await response.json();
+    return (data?.rates ?? {}) as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function convertToGbp(nativeValue: number, currencyCode: string | undefined, fxRates: Record<string, number>) {
+  if (!currencyCode || currencyCode === "GBP") return nativeValue;
+  const rate = fxRates[currencyCode];
+  return rate ? nativeValue / rate : nativeValue;
 }
 
 // Next.js redacts every thrown Server Action error's message in production —
@@ -184,35 +242,20 @@ async function syncTrading212Impl(accountId: string) {
     if (!isPositionArray(positionsRaw)) throw new Error("Unexpected response from Trading 212 (portfolio).");
     if (!isCash(cashRaw)) throw new Error("Unexpected response from Trading 212 (cash).");
 
-    // TEMPORARY: the real position response has no account-currency value
-    // (confirmed — no walletImpact field exists), so converting correctly
-    // needs each instrument's trading currency + a live FX rate. Capturing
-    // one real instrument-metadata entry to confirm its exact field names
-    // before writing that lookup, same as the position-shape capture.
-    let metaDebug = "instrument metadata fetch not attempted";
-    try {
-      const instruments = await t212Fetch(
-        environment,
-        authorizationHeader,
-        "/api/v0/equity/metadata/instruments"
-      );
-      if (Array.isArray(instruments)) {
-        const match = (instruments as { ticker?: string }[]).find((i) => i?.ticker === positionsRaw[0]?.ticker);
-        metaDebug = match ? JSON.stringify(match) : `no match among ${instruments.length} instruments`;
-      } else {
-        metaDebug = `unexpected shape: ${JSON.stringify(instruments).slice(0, 300)}`;
-      }
-    } catch (err) {
-      metaDebug = `metadata fetch failed: ${errorMessage(err, "unknown")}`;
-    }
-    if (metaDebug) throw new Error(`DEBUG instrument=${metaDebug}`);
+    const currencyByTicker = await getInstrumentCurrencies(
+      supabase,
+      environment,
+      authorizationHeader,
+      positionsRaw.map((p) => p.ticker)
+    );
+    const fxRates = await fetchFxRatesFromGbp(Object.values(currencyByTicker));
 
     const holdings = positionsRaw.map((p) => ({
       user_id: userId,
       account_id: accountId,
       name: p.ticker,
       quantity: p.quantity,
-      value: Math.round(positionValue(p) * 100) / 100,
+      value: Math.round(convertToGbp(p.quantity * p.currentPrice, currencyByTicker[p.ticker], fxRates) * 100) / 100,
     }));
     if (cashRaw.free > 0) {
       holdings.push({
@@ -249,15 +292,7 @@ async function syncTrading212Impl(accountId: string) {
 
     await supabase
       .from("investment_connections")
-      .update({
-        last_synced_at: new Date().toISOString(),
-        // TEMPORARY: capturing the raw shape of one real position so the
-        // exact field names for the account-currency-converted value can be
-        // confirmed, since Trading 212's docs are unreachable from the dev
-        // sandbox and the last guess (walletImpact) was wrong. Reverted
-        // immediately after this is read back.
-        last_sync_error: `DEBUG ${JSON.stringify(positionsRaw[0])}`,
-      })
+      .update({ last_synced_at: new Date().toISOString(), last_sync_error: null })
       .eq("account_id", accountId);
   } catch (err) {
     const message = errorMessage(err, "Sync failed");
