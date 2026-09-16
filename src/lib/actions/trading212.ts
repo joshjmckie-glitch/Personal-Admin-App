@@ -55,7 +55,12 @@ async function t212Fetch(environment: InvestmentConnectionEnvironment, authoriza
   }
 }
 
-type Trading212Position = { ticker: string; quantity: number; currentPrice: number };
+type Trading212Position = {
+  ticker: string;
+  quantity: number;
+  currentPrice: number;
+  walletImpact?: { currentValue?: number };
+};
 type Trading212Cash = { free: number };
 
 function isPositionArray(value: unknown): value is Trading212Position[] {
@@ -74,6 +79,17 @@ function isPositionArray(value: unknown): value is Trading212Position[] {
 
 function isCash(value: unknown): value is Trading212Cash {
   return Boolean(value) && typeof value === "object" && typeof (value as Trading212Cash).free === "number";
+}
+
+// currentPrice is in the instrument's own trading currency (USD, EUR, ...),
+// not the account's currency — walletImpact.currentValue is Trading 212's
+// own figure already converted to the account currency (GBP here), and is
+// what actually matches the value shown in the Trading 212 app. Only fall
+// back to a naive quantity × currentPrice for the (unexpected) case where
+// walletImpact is missing from the response.
+function positionValue(p: Trading212Position) {
+  const converted = p.walletImpact?.currentValue;
+  return typeof converted === "number" && Number.isFinite(converted) ? converted : p.quantity * p.currentPrice;
 }
 
 // Next.js redacts every thrown Server Action error's message in production —
@@ -173,7 +189,7 @@ async function syncTrading212Impl(accountId: string) {
       account_id: accountId,
       name: p.ticker,
       quantity: p.quantity,
-      value: Math.round(p.quantity * p.currentPrice * 100) / 100,
+      value: Math.round(positionValue(p) * 100) / 100,
     }));
     if (cashRaw.free > 0) {
       holdings.push({
