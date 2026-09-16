@@ -184,6 +184,29 @@ async function syncTrading212Impl(accountId: string) {
     if (!isPositionArray(positionsRaw)) throw new Error("Unexpected response from Trading 212 (portfolio).");
     if (!isCash(cashRaw)) throw new Error("Unexpected response from Trading 212 (cash).");
 
+    // TEMPORARY: the real position response has no account-currency value
+    // (confirmed — no walletImpact field exists), so converting correctly
+    // needs each instrument's trading currency + a live FX rate. Capturing
+    // one real instrument-metadata entry to confirm its exact field names
+    // before writing that lookup, same as the position-shape capture.
+    let metaDebug = "instrument metadata fetch not attempted";
+    try {
+      const instruments = await t212Fetch(
+        environment,
+        authorizationHeader,
+        "/api/v0/equity/metadata/instruments"
+      );
+      if (Array.isArray(instruments)) {
+        const match = (instruments as { ticker?: string }[]).find((i) => i?.ticker === positionsRaw[0]?.ticker);
+        metaDebug = match ? JSON.stringify(match) : `no match among ${instruments.length} instruments`;
+      } else {
+        metaDebug = `unexpected shape: ${JSON.stringify(instruments).slice(0, 300)}`;
+      }
+    } catch (err) {
+      metaDebug = `metadata fetch failed: ${errorMessage(err, "unknown")}`;
+    }
+    if (metaDebug) throw new Error(`DEBUG instrument=${metaDebug}`);
+
     const holdings = positionsRaw.map((p) => ({
       user_id: userId,
       account_id: accountId,
