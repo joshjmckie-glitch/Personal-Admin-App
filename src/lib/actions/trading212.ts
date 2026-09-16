@@ -18,17 +18,30 @@ function baseUrl(environment: InvestmentConnectionEnvironment) {
   return environment === "demo" ? "https://demo.trading212.com" : "https://live.trading212.com";
 }
 
+// Next.js redacts any exception that isn't a deliberately-thrown Error before
+// it reaches the client, replacing it with a generic "Server Components
+// render" message — so every exit path here must funnel through a clean,
+// readable Error rather than let a raw fetch/JSON/network exception escape.
+function errorMessage(err: unknown, fallback: string) {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
+
 // Trading 212 issues an API key + a separate secret and expects HTTP Basic
 // auth — the ready "Basic <base64>" header value comes from the
 // get_trading212_api_key RPC, which does the encoding server-side.
 async function t212Fetch(environment: InvestmentConnectionEnvironment, authorizationHeader: string, path: string) {
-  const response = await fetch(`${baseUrl(environment)}${path}`, {
-    headers: { Authorization: authorizationHeader },
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl(environment)}${path}`, {
+      headers: { Authorization: authorizationHeader },
+      cache: "no-store",
+    });
+  } catch (err) {
+    throw new Error(errorMessage(err, "Couldn't reach Trading 212 — try again in a moment."));
+  }
 
   if (response.status === 401 || response.status === 403) {
-    throw new Error("Trading 212 rejected that API key — check it's correct and has portfolio access.");
+    throw new Error("Trading 212 rejected that API key/secret — check they're correct and have portfolio access.");
   }
   if (response.status === 429) {
     throw new Error("Trading 212 rate-limited this request — try again in a moment.");
@@ -36,7 +49,12 @@ async function t212Fetch(environment: InvestmentConnectionEnvironment, authoriza
   if (!response.ok) {
     throw new Error(`Trading 212 returned an error (${response.status}).`);
   }
-  return response.json();
+
+  try {
+    return await response.json();
+  } catch (err) {
+    throw new Error(errorMessage(err, "Trading 212 returned an unreadable response."));
+  }
 }
 
 type Trading212Position = { ticker: string; quantity: number; currentPrice: number };
@@ -76,7 +94,7 @@ export async function connectTrading212(accountId: string, formData: FormData) {
     p_api_secret: apiSecret,
     p_environment: environment,
   });
-  if (connectError) throw new Error(connectError.message);
+  if (connectError) throw new Error(connectError.message || "Couldn't save that connection.");
 
   try {
     const { data: connections, error: keyError } = await supabase.rpc("get_trading212_api_key", {
@@ -87,8 +105,12 @@ export async function connectTrading212(accountId: string, formData: FormData) {
     if (!connection) throw new Error("Failed to save connection.");
     await t212Fetch(connection.environment, connection.authorization_header, "/api/v0/equity/account/info");
   } catch (err) {
-    await supabase.rpc("disconnect_trading212", { p_account_id: accountId });
-    throw err;
+    try {
+      await supabase.rpc("disconnect_trading212", { p_account_id: accountId });
+    } catch {
+      // Best-effort rollback — the connect error below is the one that matters.
+    }
+    throw new Error(errorMessage(err, "Couldn't verify that key/secret with Trading 212."));
   }
 
   revalidatePath("/investments");
@@ -170,9 +192,9 @@ export async function syncTrading212(accountId: string) {
       .update({ last_synced_at: new Date().toISOString(), last_sync_error: null })
       .eq("account_id", accountId);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Sync failed";
+    const message = errorMessage(err, "Sync failed");
     await supabase.from("investment_connections").update({ last_sync_error: message }).eq("account_id", accountId);
-    throw err;
+    throw new Error(message);
   }
 
   revalidatePath("/investments");
