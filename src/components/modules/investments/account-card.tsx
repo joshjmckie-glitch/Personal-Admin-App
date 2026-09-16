@@ -22,10 +22,13 @@ import { ContributionRow } from "@/components/modules/investments/contribution-r
 import { HoldingDialog } from "@/components/modules/investments/holding-dialog";
 import { HoldingRow } from "@/components/modules/investments/holding-row";
 import { HoldingsPie } from "@/components/modules/investments/holdings-pie";
+import { Trading212ConnectDialog } from "@/components/modules/investments/trading212-connect-dialog";
+import { Trading212SyncControls } from "@/components/modules/investments/trading212-sync-controls";
 import { deleteAccount, setAccountArchived } from "@/lib/actions/investments";
 import { formatCurrency } from "@/lib/utils";
 import type {
   InvestmentAccountRow,
+  InvestmentConnectionRow,
   InvestmentContributionRow,
   InvestmentHoldingRow,
   InvestmentValueHistoryRow,
@@ -36,6 +39,7 @@ export function AccountCard({
   history,
   contributions,
   holdings,
+  connection,
   providerSuggestions,
   typeSuggestions,
 }: {
@@ -43,6 +47,7 @@ export function AccountCard({
   history: InvestmentValueHistoryRow[];
   contributions: InvestmentContributionRow[];
   holdings: InvestmentHoldingRow[];
+  connection: InvestmentConnectionRow | null;
   providerSuggestions: string[];
   typeSuggestions: string[];
 }) {
@@ -173,10 +178,17 @@ export function AccountCard({
           </CollapsibleGroup>
         ) : null}
       </CardContent>
-      <CardFooter className="flex flex-wrap gap-2">
+      <CardFooter className="flex flex-wrap items-center gap-2">
         <LogValueDialog accountId={account.id} />
         <ContributionDialog accountId={account.id} />
-        <HoldingDialog accountId={account.id} />
+        {account.sync_mode === "trading212" && connection ? (
+          <Trading212SyncControls accountId={account.id} connection={connection} />
+        ) : (
+          <>
+            <HoldingDialog accountId={account.id} />
+            <Trading212ConnectDialog accountId={account.id} />
+          </>
+        )}
       </CardFooter>
     </Card>
   );

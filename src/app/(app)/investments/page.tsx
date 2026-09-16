@@ -10,6 +10,7 @@ import {
   mergeSuggestions,
 } from "@/lib/modules/investment-suggestions";
 import type {
+  InvestmentConnectionRow,
   InvestmentContributionRow,
   InvestmentHoldingRow,
   InvestmentValueHistoryRow,
@@ -28,24 +29,27 @@ export default async function InvestmentsPage() {
   let historyByAccount = new Map<string, InvestmentValueHistoryRow[]>();
   let contributionsByAccount = new Map<string, InvestmentContributionRow[]>();
   let holdingsByAccount = new Map<string, InvestmentHoldingRow[]>();
+  let connectionByAccount = new Map<string, InvestmentConnectionRow>();
   let allHistory: InvestmentValueHistoryRow[] = [];
 
   if (accountIds.length > 0) {
-    const [{ data: history }, { data: contributions }, { data: holdings }] = await Promise.all([
-      supabase
-        .from("investment_value_history")
-        .select("*")
-        .in("account_id", accountIds)
-        .order("recorded_at", { ascending: true }),
-      supabase
-        .from("investment_contributions")
-        .select("*")
-        .in("account_id", accountIds)
-        .order("contributed_on", { ascending: true }),
-      supabase.from("investment_holdings").select("*").in("account_id", accountIds).order("value", {
-        ascending: false,
-      }),
-    ]);
+    const [{ data: history }, { data: contributions }, { data: holdings }, { data: connections }] =
+      await Promise.all([
+        supabase
+          .from("investment_value_history")
+          .select("*")
+          .in("account_id", accountIds)
+          .order("recorded_at", { ascending: true }),
+        supabase
+          .from("investment_contributions")
+          .select("*")
+          .in("account_id", accountIds)
+          .order("contributed_on", { ascending: true }),
+        supabase.from("investment_holdings").select("*").in("account_id", accountIds).order("value", {
+          ascending: false,
+        }),
+        supabase.from("investment_connections").select("*").in("account_id", accountIds),
+      ]);
 
     allHistory = history ?? [];
     historyByAccount = allHistory.reduce((map, h) => {
@@ -68,6 +72,11 @@ export default async function InvestmentsPage() {
       map.set(h.account_id, list);
       return map;
     }, new Map<string, InvestmentHoldingRow[]>());
+
+    connectionByAccount = (connections ?? []).reduce((map, c) => {
+      map.set(c.account_id, c);
+      return map;
+    }, new Map<string, InvestmentConnectionRow>());
   }
 
   const activeAccounts = (accounts ?? []).filter((a) => !a.archived);
@@ -130,6 +139,7 @@ export default async function InvestmentsPage() {
               history={historyByAccount.get(account.id) ?? []}
               contributions={contributionsByAccount.get(account.id) ?? []}
               holdings={holdingsByAccount.get(account.id) ?? []}
+              connection={connectionByAccount.get(account.id) ?? null}
               providerSuggestions={providerSuggestions}
               typeSuggestions={typeSuggestions}
             />
@@ -146,6 +156,7 @@ export default async function InvestmentsPage() {
                       history={historyByAccount.get(account.id) ?? []}
                       contributions={contributionsByAccount.get(account.id) ?? []}
                       holdings={holdingsByAccount.get(account.id) ?? []}
+                      connection={connectionByAccount.get(account.id) ?? null}
                       providerSuggestions={providerSuggestions}
                       typeSuggestions={typeSuggestions}
                     />

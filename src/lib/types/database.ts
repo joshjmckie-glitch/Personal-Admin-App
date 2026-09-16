@@ -112,6 +112,19 @@ export type InvestmentValueHistoryRow = {
   created_at: string;
 };
 
+export type InvestmentConnectionEnvironment = "live" | "demo";
+export type InvestmentConnectionRow = {
+  id: string;
+  user_id: string;
+  account_id: string;
+  provider: "trading212";
+  environment: InvestmentConnectionEnvironment;
+  api_key_secret_id: string;
+  last_synced_at: string | null;
+  last_sync_error: string | null;
+  created_at: string;
+};
+
 // ---------------------------------------------------------------------------
 // Fitness
 // ---------------------------------------------------------------------------
@@ -357,6 +370,10 @@ export interface Database {
         InvestmentValueHistoryRow,
         "id" | "created_at" | "recorded_at"
       >;
+      investment_connections: TableDef<
+        InvestmentConnectionRow,
+        "id" | "created_at" | "last_synced_at" | "last_sync_error"
+      >;
       fitness_goals: TableDef<
         FitnessGoalRow,
         "id" | "created_at" | "description" | "target_date" | "status"
@@ -411,7 +428,20 @@ export interface Database {
       >;
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      connect_trading212: {
+        Args: { p_account_id: string; p_api_key: string; p_environment: string };
+        Returns: string;
+      };
+      get_trading212_api_key: {
+        Args: { p_account_id: string };
+        Returns: { api_key: string; environment: InvestmentConnectionEnvironment; connection_id: string }[];
+      };
+      disconnect_trading212: {
+        Args: { p_account_id: string };
+        Returns: undefined;
+      };
+    };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };
