@@ -43,7 +43,19 @@ export type FinanceRecurringExpenseRow = {
   category: FinanceCategory;
   amount: number;
   active: boolean;
+  billing_day: number | null;
+  is_variable: boolean;
+  show_on_car_widget: boolean;
   notes: string | null;
+  created_at: string;
+};
+
+export type FinanceExpenseLogRow = {
+  id: string;
+  user_id: string;
+  expense_id: string;
+  amount: number;
+  logged_on: string;
   created_at: string;
 };
 
@@ -349,8 +361,9 @@ export interface Database {
       >;
       finance_recurring_expenses: TableDef<
         FinanceRecurringExpenseRow,
-        "id" | "created_at" | "active" | "notes"
+        "id" | "created_at" | "active" | "billing_day" | "is_variable" | "show_on_car_widget" | "notes"
       >;
+      finance_expense_logs: TableDef<FinanceExpenseLogRow, "id" | "created_at" | "logged_on">;
       finance_salary_settings: TableDef<
         FinanceSalarySettingsRow,
         "id" | "created_at" | "updated_at" | "pension_percent" | "pension_type"

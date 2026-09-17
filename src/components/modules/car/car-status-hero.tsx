@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
 import { CountdownBadge } from "@/components/modules/car/countdown-badge";
+import { formatCurrency } from "@/lib/utils";
 
 function CarSilhouette() {
   return (
@@ -33,7 +34,7 @@ export async function CarStatusHero() {
 
   if (!vehicle) return null;
 
-  const [{ data: mot }, { data: insurance }, { data: roadTax }] = await Promise.all([
+  const [{ data: mot }, { data: insurance }, { data: roadTax }, { data: carExpenses }] = await Promise.all([
     supabase
       .from("car_mot")
       .select("due_date")
@@ -55,7 +56,25 @@ export async function CarStatusHero() {
       .order("due_date", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("finance_recurring_expenses")
+      .select("id, name, amount, is_variable")
+      .eq("show_on_car_widget", true)
+      .eq("active", true),
   ]);
+
+  const variableIds = (carExpenses ?? []).filter((e) => e.is_variable).map((e) => e.id);
+  let logCountByExpense = new Map<string, number>();
+  if (variableIds.length > 0) {
+    const { data: logs } = await supabase
+      .from("finance_expense_logs")
+      .select("expense_id")
+      .in("expense_id", variableIds);
+    logCountByExpense = (logs ?? []).reduce((map, log) => {
+      map.set(log.expense_id, (map.get(log.expense_id) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>());
+  }
 
   const title = [vehicle.make, vehicle.model].filter(Boolean).join(" ") || "Your car";
 
@@ -87,6 +106,26 @@ export async function CarStatusHero() {
             <CountdownBadge date={insurance?.renewal_date ?? null} />
           </div>
         </div>
+
+        {(carExpenses ?? []).map((expense) => (
+          <div
+            key={expense.id}
+            className="mt-3 flex items-center justify-between border-t border-border pt-3 text-sm"
+          >
+            <span>{expense.name}</span>
+            <span className="text-right">
+              <span className="font-semibold">
+                {expense.is_variable ? "~" : ""}
+                {formatCurrency(expense.amount)}/mo
+              </span>
+              {expense.is_variable ? (
+                <span className="block text-xs text-muted-foreground">
+                  {logCountByExpense.get(expense.id) ?? 0} logged
+                </span>
+              ) : null}
+            </span>
+          </div>
+        ))}
       </div>
     </Link>
   );
