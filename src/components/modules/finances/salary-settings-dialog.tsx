@@ -16,6 +16,14 @@ import {
 import { saveSalarySettings } from "@/lib/actions/finances";
 import type { FinanceSalarySettingsRow } from "@/lib/types/database";
 
+/** A day-of-month (1-31) as a same-month date string, for the date input's defaultValue. */
+function dayToDate(day: number) {
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const clamped = Math.min(day, daysInMonth);
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(clamped).padStart(2, "0")}`;
+}
+
 export function SalarySettingsDialog({ settings }: { settings: FinanceSalarySettingsRow | null }) {
   return (
     <FormDialog
@@ -70,6 +78,19 @@ export function SalarySettingsDialog({ settings }: { settings: FinanceSalarySett
           placeholder="5"
           defaultValue={settings?.pension_percent}
         />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="pay_day">Pay day (optional)</Label>
+        <Input
+          id="pay_day"
+          name="pay_day"
+          type="date"
+          defaultValue={settings?.pay_day ? dayToDate(settings.pay_day) : undefined}
+        />
+        <p className="text-xs text-muted-foreground">
+          Pick any date — we&rsquo;ll just use the day of the month. If it falls on a weekend or UK
+          bank holiday, we&rsquo;ll count down to the working day before instead.
+        </p>
       </div>
     </FormDialog>
   );

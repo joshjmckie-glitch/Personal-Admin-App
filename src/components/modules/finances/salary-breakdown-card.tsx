@@ -1,7 +1,9 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { SalarySettingsDialog } from "@/components/modules/finances/salary-settings-dialog";
 import { estimateTakeHome, TAX_YEAR_LABEL } from "@/lib/tax/uk-tax";
-import { formatCurrency } from "@/lib/utils";
+import { fetchUkBankHolidays, nextPayDate } from "@/lib/modules/pay-day";
+import { formatCurrency, formatDate, daysUntil } from "@/lib/utils";
 import type { FinanceSalarySettingsRow } from "@/lib/types/database";
 
 const PENSION_LABEL: Record<string, string> = {
@@ -10,7 +12,14 @@ const PENSION_LABEL: Record<string, string> = {
   personal: "Personal / relief-at-source",
 };
 
-export function SalaryBreakdownCard({ settings }: { settings: FinanceSalarySettingsRow | null }) {
+/** Countdown badge for the next pay date — closer is good news, so this reads opposite to the bill-due badges. */
+function PayDayBadge({ days }: { days: number }) {
+  if (days === 0) return <Badge variant="success">Payday today</Badge>;
+  if (days <= 3) return <Badge className="border-transparent bg-primary/20 text-primary">Payday in {days}d</Badge>;
+  return <Badge variant="outline">Payday in {days}d</Badge>;
+}
+
+export async function SalaryBreakdownCard({ settings }: { settings: FinanceSalarySettingsRow | null }) {
   if (!settings) {
     return (
       <Card>
@@ -52,13 +61,30 @@ export function SalaryBreakdownCard({ settings }: { settings: FinanceSalarySetti
   }
   rows.push(["Take-home (annual)", result.takeHomeAnnual, true]);
 
+  let payDayInfo: { date: Date; days: number } | null = null;
+  if (settings.pay_day) {
+    const holidays = await fetchUkBankHolidays();
+    const date = nextPayDate(settings.pay_day, holidays);
+    payDayInfo = { date, days: daysUntil(date) };
+  }
+
   return (
     <Card>
       <CardHeader>
         <div>
-          <CardTitle className="text-base font-semibold text-foreground">
-            {formatCurrency(result.takeHomeMonthly)}
-            <span className="ml-1 text-sm font-normal text-muted-foreground">/ month expected</span>
+          <CardTitle className="flex flex-wrap items-center gap-2 text-base font-semibold text-foreground">
+            <span>
+              {formatCurrency(result.takeHomeMonthly)}
+              <span className="ml-1 text-sm font-normal text-muted-foreground">/ month expected</span>
+            </span>
+            {payDayInfo ? (
+              <span className="flex items-center gap-1.5">
+                <PayDayBadge days={payDayInfo.days} />
+                <span className="text-xs font-normal text-muted-foreground">
+                  {formatDate(payDayInfo.date, { day: "numeric", month: "short" })}
+                </span>
+              </span>
+            ) : null}
           </CardTitle>
           <CardDescription>
             {formatCurrency(settings.annual_salary)} salary · {settings.pension_percent}%{" "}

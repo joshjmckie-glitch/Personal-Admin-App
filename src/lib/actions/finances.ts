@@ -241,11 +241,20 @@ export async function saveSalarySettings(formData: FormData) {
   const annual_salary = Number(formData.get("annual_salary"));
   const pension_percent = Number(formData.get("pension_percent") ?? 0);
   const pension_type = String(formData.get("pension_type") ?? "none") as PensionType;
+  const payDateRaw = formData.get("pay_day");
+  const pay_day = payDateRaw ? Number(String(payDateRaw).split("-")[2]) : null;
 
   const { error } = await supabase
     .from("finance_salary_settings")
     .upsert(
-      { user_id: userId, annual_salary, pension_percent, pension_type, updated_at: new Date().toISOString() },
+      {
+        user_id: userId,
+        annual_salary,
+        pension_percent,
+        pension_type,
+        pay_day,
+        updated_at: new Date().toISOString(),
+      },
       { onConflict: "user_id" }
     );
   if (error) throw new Error(error.message);

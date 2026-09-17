@@ -65,6 +65,7 @@ export type FinanceSalarySettingsRow = {
   annual_salary: number;
   pension_percent: number;
   pension_type: PensionType;
+  pay_day: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -365,7 +366,7 @@ export interface Database {
       finance_expense_logs: TableDef<FinanceExpenseLogRow, "id" | "created_at" | "logged_month">;
       finance_salary_settings: TableDef<
         FinanceSalarySettingsRow,
-        "id" | "created_at" | "updated_at" | "pension_percent" | "pension_type"
+        "id" | "created_at" | "updated_at" | "pension_percent" | "pension_type" | "pay_day"
       >;
       investment_accounts: TableDef<
         InvestmentAccountRow,
