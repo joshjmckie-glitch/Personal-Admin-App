@@ -11,11 +11,11 @@ import type { FinanceExpenseLogRow } from "@/lib/types/database";
 
 export function ExpenseLogDialog({ expenseId, log }: { expenseId: string; log?: FinanceExpenseLogRow }) {
   const isEdit = Boolean(log);
-  const today = new Date().toISOString().slice(0, 10);
+  const thisMonth = new Date().toISOString().slice(0, 7);
 
   return (
     <FormDialog
-      title={isEdit ? "Edit fill-up" : "Log fill-up"}
+      title={isEdit ? "Edit monthly amount" : "Log this month's amount"}
       submitLabel="Save"
       trigger={
         isEdit ? (
@@ -25,7 +25,7 @@ export function ExpenseLogDialog({ expenseId, log }: { expenseId: string; log?: 
         ) : (
           <Button type="button" variant="ghost" size="sm">
             <Plus />
-            Log fill-up
+            Log this month&rsquo;s amount
           </Button>
         )
       }
@@ -34,6 +34,19 @@ export function ExpenseLogDialog({ expenseId, log }: { expenseId: string; log?: 
       }
     >
       <div className="flex flex-col gap-1.5">
+        <Label htmlFor="logged_month">Month</Label>
+        <Input
+          id="logged_month"
+          name="logged_month"
+          type="month"
+          required
+          defaultValue={log?.logged_month.slice(0, 7) ?? thisMonth}
+        />
+        <p className="text-xs text-muted-foreground">
+          Logging a month you&rsquo;ve already added updates that month&rsquo;s figure instead of adding another.
+        </p>
+      </div>
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor="amount">Amount</Label>
         <Input
           id="amount"
@@ -41,13 +54,9 @@ export function ExpenseLogDialog({ expenseId, log }: { expenseId: string; log?: 
           type="number"
           step="0.01"
           required
-          placeholder="58.20"
+          placeholder="220"
           defaultValue={log?.amount}
         />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="logged_on">Date</Label>
-        <Input id="logged_on" name="logged_on" type="date" required defaultValue={log?.logged_on ?? today} />
       </div>
     </FormDialog>
   );

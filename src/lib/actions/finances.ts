@@ -65,31 +65,55 @@ export async function deletePaycheck(id: string) {
   revalidatePath("/");
 }
 
+// The billing-day field is a native date input (opens a real calendar) — we
+// only keep the day-of-month from whatever date is picked, month/year are
+// discarded.
 function recurringExpenseFields(formData: FormData) {
-  const billingDayRaw = formData.get("billing_day");
+  const billingDateRaw = formData.get("billing_day");
+  const billingDay = billingDateRaw ? Number(String(billingDateRaw).split("-")[2]) : null;
+
   return {
     name: String(formData.get("name")),
     category: String(formData.get("category")) as FinanceCategory,
     is_variable: formData.get("is_variable") === "on",
-    billing_day: billingDayRaw ? Number(billingDayRaw) : null,
-    show_on_car_widget: formData.get("show_on_car_widget") === "on",
+    billing_day: billingDay,
     notes: String(formData.get("notes") ?? "").trim() || null,
   };
+}
+
+function currentMonthDate() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
 export async function createRecurringExpense(formData: FormData) {
   const { supabase, userId } = await requireUserId();
 
   const fields = recurringExpenseFields(formData);
-  // Variable expenses have no user-entered amount — it's maintained as the
-  // average of logged entries whenever a log is added/edited/deleted (see
-  // recomputeExpenseAverage below), starting at 0 until the first log.
-  const amount = fields.is_variable ? 0 : Number(formData.get("amount"));
 
-  const { error } = await supabase
-    .from("finance_recurring_expenses")
-    .insert({ user_id: userId, ...fields, amount });
-  if (error) throw new Error(error.message);
+  if (fields.is_variable) {
+    // A variable expense starts from an estimate for the current month
+    // instead of a fixed amount — that estimate becomes the first logged
+    // month, and the average (just that one figure, to begin with) is what
+    // actually gets stored as `amount`.
+    const estimate = Number(formData.get("amount"));
+    const { data: expense, error } = await supabase
+      .from("finance_recurring_expenses")
+      .insert({ user_id: userId, ...fields, amount: estimate })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    const { error: logError } = await supabase
+      .from("finance_expense_logs")
+      .insert({ user_id: userId, expense_id: expense.id, amount: estimate, logged_month: currentMonthDate() });
+    if (logError) throw new Error(logError.message);
+  } else {
+    const { error } = await supabase
+      .from("finance_recurring_expenses")
+      .insert({ user_id: userId, ...fields, amount: Number(formData.get("amount")) });
+    if (error) throw new Error(error.message);
+  }
 
   revalidatePath("/finances");
   revalidatePath("/");
@@ -154,18 +178,28 @@ async function recomputeExpenseAverage(supabase: SupabaseClient, expenseId: stri
 }
 
 function expenseLogFields(formData: FormData) {
+  // Native month input submits "YYYY-MM" — store as the 1st of that month.
+  const monthRaw = String(formData.get("logged_month") || "");
+  const logged_month = monthRaw ? `${monthRaw}-01` : currentMonthDate();
+
   return {
     amount: Number(formData.get("amount")),
-    logged_on: String(formData.get("logged_on") || new Date().toISOString().slice(0, 10)),
+    logged_month,
   };
 }
 
 export async function createExpenseLog(expenseId: string, formData: FormData) {
   const { supabase, userId } = await requireUserId();
 
+  // Logging again for a month you've already logged updates that month's
+  // figure rather than adding a second entry — the average always reflects
+  // one number per calendar month.
   const { error } = await supabase
     .from("finance_expense_logs")
-    .insert({ user_id: userId, expense_id: expenseId, ...expenseLogFields(formData) });
+    .upsert(
+      { user_id: userId, expense_id: expenseId, ...expenseLogFields(formData) },
+      { onConflict: "expense_id,logged_month" }
+    );
   if (error) throw new Error(error.message);
 
   await recomputeExpenseAverage(supabase, expenseId);

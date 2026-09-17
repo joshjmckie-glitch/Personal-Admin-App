@@ -41,7 +41,7 @@ export function RecurringExpenseRow({
         {expense.is_variable ? (
           <span className="text-right text-sm font-medium">
             ~{formatCurrency(expense.amount)}
-            <span className="block text-xs font-normal text-muted-foreground">{logs.length} logged</span>
+            <span className="block text-xs font-normal text-muted-foreground">{logs.length} months logged</span>
           </span>
         ) : (
           <span className="text-sm font-medium">{formatCurrency(expense.amount)}</span>
@@ -53,7 +53,7 @@ export function RecurringExpenseRow({
       {expense.is_variable ? (
         <div className="pl-11">
           {logs.length > 0 ? (
-            <CollapsibleGroup label="Logged amounts" count={logs.length}>
+            <CollapsibleGroup label="Monthly amounts" count={logs.length}>
               {logs.map((log) => (
                 <ExpenseLogRow key={log.id} expenseId={expense.id} log={log} />
               ))}

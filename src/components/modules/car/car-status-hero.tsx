@@ -59,7 +59,7 @@ export async function CarStatusHero() {
     supabase
       .from("finance_recurring_expenses")
       .select("id, name, amount, is_variable")
-      .eq("show_on_car_widget", true)
+      .eq("category", "fuel")
       .eq("active", true),
   ]);
 
@@ -120,7 +120,7 @@ export async function CarStatusHero() {
               </span>
               {expense.is_variable ? (
                 <span className="block text-xs text-muted-foreground">
-                  {logCountByExpense.get(expense.id) ?? 0} logged
+                  {logCountByExpense.get(expense.id) ?? 0} months logged
                 </span>
               ) : null}
             </span>

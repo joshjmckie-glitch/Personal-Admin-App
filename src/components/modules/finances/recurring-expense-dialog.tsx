@@ -20,9 +20,31 @@ import { CATEGORY_LABEL, CATEGORY_ORDER } from "@/lib/modules/finance-categories
 import { cn, formatCurrency } from "@/lib/utils";
 import type { FinanceRecurringExpenseRow } from "@/lib/types/database";
 
+/** A billing day (1-31) as a same-month date string, for the date input's defaultValue. */
+function billingDayToDate(day: number) {
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const clamped = Math.min(day, daysInMonth);
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(clamped).padStart(2, "0")}`;
+}
+
 export function RecurringExpenseDialog({ expense }: { expense?: FinanceRecurringExpenseRow }) {
   const isEdit = Boolean(expense);
   const [isVariable, setIsVariable] = useState(expense?.is_variable ?? false);
+  const [touchedVariable, setTouchedVariable] = useState(false);
+
+  function handleCategoryChange(value: string) {
+    // Fuel is almost always variable — suggest it, but only for a new
+    // expense and only if the user hasn't already made their own choice.
+    if (!isEdit && !touchedVariable && value === "fuel") {
+      setIsVariable(true);
+    }
+  }
+
+  function chooseVariable(value: boolean) {
+    setIsVariable(value);
+    setTouchedVariable(true);
+  }
 
   return (
     <FormDialog
@@ -52,7 +74,7 @@ export function RecurringExpenseDialog({ expense }: { expense?: FinanceRecurring
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="category">Category</Label>
-        <Select name="category" defaultValue={expense?.category ?? "subscription"}>
+        <Select name="category" defaultValue={expense?.category ?? "subscription"} onValueChange={handleCategoryChange}>
           <SelectTrigger id="category">
             <SelectValue />
           </SelectTrigger>
@@ -64,6 +86,9 @@ export function RecurringExpenseDialog({ expense }: { expense?: FinanceRecurring
             ))}
           </SelectContent>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          Categorising something as Fuel also shows it on the Car dashboard card.
+        </p>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -71,7 +96,7 @@ export function RecurringExpenseDialog({ expense }: { expense?: FinanceRecurring
         <div className="inline-flex w-fit rounded-full border border-border p-0.5">
           <button
             type="button"
-            onClick={() => setIsVariable(false)}
+            onClick={() => chooseVariable(false)}
             className={cn(
               "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
               !isVariable ? "bg-primary text-primary-foreground" : "text-muted-foreground"
@@ -81,7 +106,7 @@ export function RecurringExpenseDialog({ expense }: { expense?: FinanceRecurring
           </button>
           <button
             type="button"
-            onClick={() => setIsVariable(true)}
+            onClick={() => chooseVariable(true)}
             className={cn(
               "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
               isVariable ? "bg-primary text-primary-foreground" : "text-muted-foreground"
@@ -106,12 +131,20 @@ export function RecurringExpenseDialog({ expense }: { expense?: FinanceRecurring
             defaultValue={expense?.amount}
           />
         </div>
-      ) : (
+      ) : isEdit && expense ? (
         <p className="text-xs text-muted-foreground">
-          {isEdit && expense
-            ? `Currently averaging ${formatCurrency(expense.amount)} from logged entries — log amounts from the expense row.`
-            : "No fixed amount — you'll log what it actually costs each time, and the average becomes the monthly figure automatically."}
+          Currently averaging {formatCurrency(expense.amount)} across logged months — log each month&rsquo;s
+          actual amount from the expense row.
         </p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="amount">Estimated amount for this month</Label>
+          <Input id="amount" name="amount" type="number" step="0.01" required placeholder="60" />
+          <p className="text-xs text-muted-foreground">
+            No fixed amount — this estimate becomes this month&rsquo;s figure, and each month after you log
+            what it actually cost. The average updates automatically.
+          </p>
+        </div>
       )}
 
       <div className="flex flex-col gap-1.5">
@@ -119,27 +152,14 @@ export function RecurringExpenseDialog({ expense }: { expense?: FinanceRecurring
         <Input
           id="billing_day"
           name="billing_day"
-          type="number"
-          min={1}
-          max={31}
-          placeholder="e.g. 1"
-          defaultValue={expense?.billing_day ?? undefined}
+          type="date"
+          defaultValue={expense?.billing_day ? billingDayToDate(expense.billing_day) : undefined}
         />
         <p className="text-xs text-muted-foreground">
-          Day of the month this comes out, if it has one — powers the &ldquo;coming up&rdquo; countdown.
-          Leave blank if it varies.
+          Pick any date — we&rsquo;ll just use the day of the month, to power the &ldquo;coming up&rdquo;
+          countdown. Leave blank if it varies.
         </p>
       </div>
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          name="show_on_car_widget"
-          defaultChecked={expense?.show_on_car_widget ?? false}
-          className="size-4 rounded border-input accent-primary"
-        />
-        Also show on the car dashboard card
-      </label>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="notes">Notes (optional)</Label>
