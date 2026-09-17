@@ -25,6 +25,7 @@ import { HoldingsPie } from "@/components/modules/investments/holdings-pie";
 import { Trading212ConnectDialog } from "@/components/modules/investments/trading212-connect-dialog";
 import { Trading212SyncControls } from "@/components/modules/investments/trading212-sync-controls";
 import { deleteAccount, setAccountArchived } from "@/lib/actions/investments";
+import { matchSyncProvider } from "@/lib/modules/sync-providers";
 import { formatCurrency } from "@/lib/utils";
 import type {
   InvestmentAccountRow,
@@ -61,6 +62,7 @@ export function AccountCard({
   const gainPct = netContributed !== 0 ? (gain / netContributed) * 100 : null;
 
   const holdingsTotal = holdings.reduce((sum, h) => sum + h.value, 0);
+  const syncProvider = matchSyncProvider(account.provider);
 
   return (
     <Card className={account.archived ? "opacity-70" : undefined}>
@@ -186,7 +188,7 @@ export function AccountCard({
         ) : (
           <>
             <HoldingDialog accountId={account.id} />
-            <Trading212ConnectDialog accountId={account.id} />
+            {syncProvider === "trading212" ? <Trading212ConnectDialog accountId={account.id} /> : null}
           </>
         )}
       </CardFooter>
