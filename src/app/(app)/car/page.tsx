@@ -1,15 +1,33 @@
 import { createClient } from "@/lib/supabase/server";
 import { NewVehicleDialog } from "@/components/modules/car/new-vehicle-dialog";
 import { VehicleCard } from "@/components/modules/car/vehicle-card";
+import { FuelSummaryCard } from "@/components/modules/car/fuel-summary-card";
 import type { CarInsuranceRow, CarMaintenanceLogRow, CarMotRow, CarRoadTaxRow } from "@/lib/types/database";
 
 export default async function CarPage() {
   const supabase = await createClient();
 
-  const { data: vehicles } = await supabase
-    .from("car_vehicles")
-    .select("*")
-    .order("created_at", { ascending: true });
+  const [{ data: vehicles }, { data: fuelExpenses }] = await Promise.all([
+    supabase.from("car_vehicles").select("*").order("created_at", { ascending: true }),
+    supabase
+      .from("finance_recurring_expenses")
+      .select("*")
+      .eq("category", "fuel")
+      .eq("active", true),
+  ]);
+
+  const variableFuelIds = (fuelExpenses ?? []).filter((e) => e.is_variable).map((e) => e.id);
+  let fuelLogCountByExpense = new Map<string, number>();
+  if (variableFuelIds.length > 0) {
+    const { data: logs } = await supabase
+      .from("finance_expense_logs")
+      .select("expense_id")
+      .in("expense_id", variableFuelIds);
+    fuelLogCountByExpense = (logs ?? []).reduce((map, log) => {
+      map.set(log.expense_id, (map.get(log.expense_id) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>());
+  }
 
   const vehicleIds = (vehicles ?? []).map((v) => v.id);
 
@@ -68,6 +86,8 @@ export default async function CarPage() {
         </div>
         <NewVehicleDialog />
       </div>
+
+      <FuelSummaryCard expenses={fuelExpenses ?? []} logCountByExpense={fuelLogCountByExpense} />
 
       {!vehicles || vehicles.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
