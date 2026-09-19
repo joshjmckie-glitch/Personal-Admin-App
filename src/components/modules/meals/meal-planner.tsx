@@ -223,21 +223,36 @@ function MonthView({
               type="button"
               onClick={() => setExpandedDay(day)}
               className={cn(
-                "flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border bg-card text-xs",
+                "aspect-square overflow-hidden rounded-lg border bg-card text-xs",
                 isSameMonth(day, date) ? "text-foreground" : "text-muted-foreground/40",
                 isToday(day) ? "border-primary/60" : "border-border"
               )}
             >
-              {format(day, "d")}
-              {dayEntries.length > 0 ? (
-                <div className="flex">
-                  {dayEntries.map((entry, i) => (
-                    <div key={entry.id} className={i > 0 ? "-ml-2" : undefined}>
-                      <MealThumb photoUrl={entry.meal_photo_url} size={18} />
-                    </div>
-                  ))}
-                </div>
-              ) : null}
+              {/* Phone: day number on top, meal photos overlapping in a row below. */}
+              <div className="flex h-full flex-col items-center justify-center gap-1 md:hidden">
+                {format(day, "d")}
+                {dayEntries.length > 0 ? (
+                  <div className="flex">
+                    {dayEntries.map((entry, i) => (
+                      <div key={entry.id} className={i > 0 ? "-ml-2" : undefined}>
+                        <MealThumb photoUrl={entry.meal_photo_url} size={18} />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Desktop: meal photos stacked in a column, day number beside them. */}
+              <div className="hidden h-full items-center gap-2 px-2.5 md:flex">
+                {dayEntries.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    {dayEntries.map((entry) => (
+                      <MealThumb key={entry.id} photoUrl={entry.meal_photo_url} size={16} />
+                    ))}
+                  </div>
+                ) : null}
+                <span className="text-sm font-semibold">{format(day, "d")}</span>
+              </div>
             </button>
           );
         })}
