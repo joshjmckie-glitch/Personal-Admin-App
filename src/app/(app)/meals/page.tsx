@@ -20,9 +20,11 @@ export default async function MealsPage() {
   ]);
 
   const mealTitleById = new Map((meals ?? []).map((m) => [m.id, m.title]));
+  const mealPhotoById = new Map((meals ?? []).map((m) => [m.id, m.photo_url]));
   const enrichedEntries = (mealEntries ?? []).map((entry) => ({
     ...entry,
     meal_title: entry.meal_id ? mealTitleById.get(entry.meal_id) ?? null : null,
+    meal_photo_url: entry.meal_id ? mealPhotoById.get(entry.meal_id) ?? null : null,
   }));
 
   return (

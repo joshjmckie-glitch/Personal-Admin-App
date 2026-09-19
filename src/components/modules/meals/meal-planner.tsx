@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import {
   addMonths,
   addWeeks,
@@ -13,7 +14,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChefHat } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,7 +26,7 @@ import { MEAL_SLOT_ORDER, MEAL_SLOT_LABEL } from "@/lib/modules/meal-slots";
 import { cn } from "@/lib/utils";
 import type { MealPlanEntryRow, RecipeRow } from "@/lib/types/database";
 
-type Entry = MealPlanEntryRow & { meal_title: string | null };
+type Entry = MealPlanEntryRow & { meal_title: string | null; meal_photo_url: string | null };
 type MealOption = Pick<RecipeRow, "id" | "title" | "meal_type">;
 
 export function MealPlanner({
@@ -80,6 +81,24 @@ export function MealPlanner({
   );
 }
 
+/** A meal's photo as a small rounded thumbnail, or a generic fallback icon when it has none. */
+function MealThumb({ photoUrl, size }: { photoUrl: string | null; size: number }) {
+  return (
+    <div
+      className="relative shrink-0 overflow-hidden rounded-md bg-secondary ring-2 ring-card"
+      style={{ width: size, height: size }}
+    >
+      {photoUrl ? (
+        <Image src={photoUrl} alt="" fill sizes={`${size}px`} className="object-cover" />
+      ) : (
+        <div className="flex h-full items-center justify-center text-muted-foreground">
+          <ChefHat style={{ width: size * 0.55, height: size * 0.55 }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DaySlots({
   date,
   entriesByDate,
@@ -96,33 +115,37 @@ function DaySlots({
     <div className="flex flex-col gap-1.5">
       {MEAL_SLOT_ORDER.map((slot) => {
         const entry = entries.find((e) => e.meal_slot === slot);
-        return (
-          <div key={slot} className="flex items-center justify-between gap-1 rounded-md bg-secondary px-2 py-1">
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] text-muted-foreground">{MEAL_SLOT_LABEL[slot]}</p>
-              {entry ? (
-                <p className="truncate text-xs font-medium">
-                  {entry.meal_title ?? entry.title_override ?? "Meal"}
-                </p>
-              ) : (
-                <PlanEntryDialog
-                  date={dateStr}
-                  slot={slot}
-                  meals={meals}
-                  trigger={
-                    <button type="button" className="text-xs text-muted-foreground hover:text-foreground">
-                      + Add
-                    </button>
-                  }
-                />
-              )}
-            </div>
-            {entry ? (
-              <DeleteButton
-                onDelete={() => deleteMealPlanEntry(entry.id)}
-                label={`Remove ${MEAL_SLOT_LABEL[slot]}`}
+
+        if (!entry) {
+          return (
+            <div key={slot} className="rounded-lg border border-dashed border-border px-2.5 py-1.5">
+              <PlanEntryDialog
+                date={dateStr}
+                slot={slot}
+                meals={meals}
+                trigger={
+                  <button type="button" className="text-xs text-muted-foreground hover:text-foreground">
+                    + Add {MEAL_SLOT_LABEL[slot]}
+                  </button>
+                }
               />
-            ) : null}
+            </div>
+          );
+        }
+
+        return (
+          <div key={slot} className="relative flex items-center gap-2 rounded-lg bg-secondary py-1.5 pr-2 pl-9">
+            <div className="absolute left-1.5 top-1/2 -translate-y-1/2">
+              <MealThumb photoUrl={entry.meal_photo_url} size={26} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] uppercase tracking-wide text-muted-foreground">{MEAL_SLOT_LABEL[slot]}</p>
+              <p className="truncate text-xs font-medium">{entry.meal_title ?? entry.title_override ?? "Meal"}</p>
+            </div>
+            <DeleteButton
+              onDelete={() => deleteMealPlanEntry(entry.id)}
+              label={`Remove ${MEAL_SLOT_LABEL[slot]}`}
+            />
           </div>
         );
       })}
@@ -191,7 +214,9 @@ function MonthView({
         ))}
         {days.map((day) => {
           const dateStr = format(day, "yyyy-MM-dd");
-          const dayEntries = entriesByDate.get(dateStr) ?? [];
+          const dayEntries = (entriesByDate.get(dateStr) ?? [])
+            .slice()
+            .sort((a, b) => MEAL_SLOT_ORDER.indexOf(a.meal_slot) - MEAL_SLOT_ORDER.indexOf(b.meal_slot));
           return (
             <button
               key={dateStr}
@@ -204,17 +229,15 @@ function MonthView({
               )}
             >
               {format(day, "d")}
-              <div className="flex gap-0.5">
-                {MEAL_SLOT_ORDER.map((slot) => (
-                  <span
-                    key={slot}
-                    className={cn(
-                      "size-1.5 rounded-full",
-                      dayEntries.some((e) => e.meal_slot === slot) ? "bg-primary" : "bg-border"
-                    )}
-                  />
-                ))}
-              </div>
+              {dayEntries.length > 0 ? (
+                <div className="flex">
+                  {dayEntries.map((entry, i) => (
+                    <div key={entry.id} className={i > 0 ? "-ml-2" : undefined}>
+                      <MealThumb photoUrl={entry.meal_photo_url} size={18} />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </button>
           );
         })}
