@@ -85,7 +85,7 @@ export function MealPlanner({
 function MealThumb({ photoUrl, size }: { photoUrl: string | null; size: number }) {
   return (
     <div
-      className="relative shrink-0 overflow-hidden rounded-md bg-secondary ring-2 ring-card"
+      className="relative shrink-0 overflow-hidden rounded-[3px] bg-secondary ring-2 ring-card"
       style={{ width: size, height: size }}
     >
       {photoUrl ? (
@@ -223,9 +223,9 @@ function MonthView({
               type="button"
               onClick={() => setExpandedDay(day)}
               className={cn(
-                "flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-transparent text-xs",
+                "flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border bg-card text-xs",
                 isSameMonth(day, date) ? "text-foreground" : "text-muted-foreground/40",
-                isToday(day) && "border-primary/60"
+                isToday(day) ? "border-primary/60" : "border-border"
               )}
             >
               {format(day, "d")}
