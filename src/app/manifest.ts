@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Life Admin",
     short_name: "Life Admin",
     description:
-      "A personal life admin dashboard — finances, investments, fitness, car, recipes, travel and gifts in one place.",
+      "A personal life admin dashboard — finances, investments, fitness, car, meals, travel and gifts in one place.",
     start_url: "/",
     scope: "/",
     display: "standalone",

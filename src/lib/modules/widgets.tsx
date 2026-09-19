@@ -3,7 +3,7 @@ import type { ComponentType } from "react";
 import { FinancesWidget } from "@/components/modules/finances/widget";
 import { InvestmentsWidget } from "@/components/modules/investments/widget";
 import { FitnessWidget } from "@/components/modules/fitness/widget";
-import { RecipesWidget } from "@/components/modules/recipes/widget";
+import { MealsWidget } from "@/components/modules/meals/widget";
 import { TravelWidget } from "@/components/modules/travel/widget";
 import { GiftsWidget } from "@/components/modules/gifts/widget";
 
@@ -17,7 +17,7 @@ export const MODULE_WIDGETS: Record<string, ComponentType> = {
   finances: FinancesWidget,
   investments: InvestmentsWidget,
   fitness: FitnessWidget,
-  recipes: RecipesWidget,
+  meals: MealsWidget,
   travel: TravelWidget,
   gifts: GiftsWidget,
 };

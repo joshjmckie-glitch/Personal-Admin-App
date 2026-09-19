@@ -54,11 +54,11 @@ export const MODULES: ModuleDef[] = [
     description: "Insurance, MOT & servicing",
   },
   {
-    id: "recipes",
-    label: "Recipes",
-    href: "/recipes",
+    id: "meals",
+    label: "Meals",
+    href: "/meals",
     icon: ChefHat,
-    description: "Recipe library & meal plan",
+    description: "Meal library & meal plan",
   },
   {
     id: "travel",

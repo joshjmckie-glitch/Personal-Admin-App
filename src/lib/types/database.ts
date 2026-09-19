@@ -247,6 +247,8 @@ export type CarMaintenanceLogRow = {
 // ---------------------------------------------------------------------------
 // Recipes & meal prep
 // ---------------------------------------------------------------------------
+export type MealSlot = "breakfast" | "lunch" | "tea";
+
 export type RecipeRow = {
   id: string;
   user_id: string;
@@ -254,15 +256,15 @@ export type RecipeRow = {
   ingredients: string;
   method: string;
   tags: string[];
+  meal_type: MealSlot[];
   photo_url: string | null;
   created_at: string;
 };
 
-export type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 export type MealPlanEntryRow = {
   id: string;
   user_id: string;
-  recipe_id: string | null;
+  meal_id: string | null;
   title_override: string | null;
   planned_date: string;
   meal_slot: MealSlot;
@@ -422,11 +424,11 @@ export interface Database {
       >;
       recipes: TableDef<
         RecipeRow,
-        "id" | "created_at" | "ingredients" | "method" | "tags" | "photo_url"
+        "id" | "created_at" | "ingredients" | "method" | "tags" | "meal_type" | "photo_url"
       >;
       meal_plan_entries: TableDef<
         MealPlanEntryRow,
-        "id" | "created_at" | "recipe_id" | "title_override" | "meal_slot" | "notes"
+        "id" | "created_at" | "meal_id" | "title_override" | "notes"
       >;
       travel_trips: TableDef<
         TravelTripRow,

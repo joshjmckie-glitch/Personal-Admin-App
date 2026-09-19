@@ -5,7 +5,7 @@ import { ChefHat } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/modules/delete-button";
-import { NewRecipeDialog } from "@/components/modules/recipes/new-recipe-dialog";
+import { MealFormDialog } from "@/components/modules/meals/meal-form-dialog";
 import {
   Dialog,
   DialogContent,
@@ -13,20 +13,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { deleteRecipe } from "@/lib/actions/recipes";
+import { deleteRecipe } from "@/lib/actions/meals";
+import { MEAL_SLOT_LABEL } from "@/lib/modules/meal-slots";
 import type { RecipeRow } from "@/lib/types/database";
 
-export function RecipeCard({ recipe }: { recipe: RecipeRow }) {
+export function MealCard({ meal }: { meal: RecipeRow }) {
   return (
     <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
       <Dialog>
         <DialogTrigger asChild>
           <button type="button" className="block w-full text-left">
             <div className="relative aspect-[4/3] w-full bg-secondary">
-              {recipe.photo_url ? (
+              {meal.photo_url ? (
                 <Image
-                  src={recipe.photo_url}
-                  alt={recipe.title}
+                  src={meal.photo_url}
+                  alt={meal.title}
                   fill
                   sizes="(max-width: 640px) 50vw, 240px"
                   className="object-cover"
@@ -38,10 +39,19 @@ export function RecipeCard({ recipe }: { recipe: RecipeRow }) {
               )}
             </div>
             <div className="p-3">
-              <p className="truncate text-sm font-medium">{recipe.title}</p>
-              {recipe.tags.length > 0 ? (
+              <p className="truncate text-sm font-medium">{meal.title}</p>
+              {meal.meal_type.length > 0 ? (
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {recipe.tags.slice(0, 3).map((tag) => (
+                  {meal.meal_type.map((slot) => (
+                    <Badge key={slot} className="text-[10px]">
+                      {MEAL_SLOT_LABEL[slot]}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+              {meal.tags.length > 0 ? (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {meal.tags.slice(0, 3).map((tag) => (
                     <Badge key={tag} variant="outline" className="text-[10px]">
                       {tag}
                     </Badge>
@@ -53,28 +63,28 @@ export function RecipeCard({ recipe }: { recipe: RecipeRow }) {
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{recipe.title}</DialogTitle>
+            <DialogTitle>{meal.title}</DialogTitle>
           </DialogHeader>
-          {recipe.photo_url ? (
+          {meal.photo_url ? (
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-secondary">
-              <Image src={recipe.photo_url} alt={recipe.title} fill className="object-cover" />
+              <Image src={meal.photo_url} alt={meal.title} fill className="object-cover" />
             </div>
           ) : null}
-          {recipe.ingredients ? (
+          {meal.ingredients ? (
             <div>
               <p className="mb-1 text-xs font-medium text-muted-foreground">Ingredients</p>
-              <p className="whitespace-pre-line text-sm">{recipe.ingredients}</p>
+              <p className="whitespace-pre-line text-sm">{meal.ingredients}</p>
             </div>
           ) : null}
-          {recipe.method ? (
+          {meal.method ? (
             <div>
               <p className="mb-1 text-xs font-medium text-muted-foreground">Method</p>
-              <p className="whitespace-pre-line text-sm">{recipe.method}</p>
+              <p className="whitespace-pre-line text-sm">{meal.method}</p>
             </div>
           ) : null}
           <div className="flex justify-end gap-1">
-            <NewRecipeDialog recipe={recipe} />
-            <DeleteButton onDelete={() => deleteRecipe(recipe.id)} label="Delete recipe" />
+            <MealFormDialog meal={meal} />
+            <DeleteButton onDelete={() => deleteRecipe(meal.id)} label="Delete meal" />
           </div>
         </DialogContent>
       </Dialog>

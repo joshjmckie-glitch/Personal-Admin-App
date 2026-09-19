@@ -2,14 +2,12 @@
 
 import { useMemo, useState } from "react";
 import {
-  addDays,
   addMonths,
   addWeeks,
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
   format,
-  isSameDay,
   isSameMonth,
   isToday,
   startOfMonth,
@@ -19,30 +17,25 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DeleteButton } from "@/components/modules/delete-button";
-import { NewMealDialog } from "@/components/modules/recipes/new-meal-dialog";
-import { deleteMealPlanEntry } from "@/lib/actions/recipes";
+import { PlanEntryDialog } from "@/components/modules/meals/plan-entry-dialog";
+import { deleteMealPlanEntry } from "@/lib/actions/meals";
+import { MEAL_SLOT_ORDER, MEAL_SLOT_LABEL } from "@/lib/modules/meal-slots";
 import { cn } from "@/lib/utils";
 import type { MealPlanEntryRow, RecipeRow } from "@/lib/types/database";
 
-type Entry = MealPlanEntryRow & { recipe_title: string | null };
-
-const SLOT_ORDER = ["breakfast", "lunch", "dinner", "snack"] as const;
-const SLOT_LABEL: Record<string, string> = {
-  breakfast: "Breakfast",
-  lunch: "Lunch",
-  dinner: "Dinner",
-  snack: "Snack",
-};
+type Entry = MealPlanEntryRow & { meal_title: string | null };
+type MealOption = Pick<RecipeRow, "id" | "title" | "meal_type">;
 
 export function MealPlanner({
   entries,
-  recipes,
+  meals,
 }: {
   entries: Entry[];
-  recipes: Pick<RecipeRow, "id" | "title">[];
+  meals: MealOption[];
 }) {
-  const [view, setView] = useState<"day" | "week" | "month">("week");
+  const [view, setView] = useState<"week" | "month">("week");
   const [anchor, setAnchor] = useState(() => new Date());
 
   const entriesByDate = useMemo(() => {
@@ -52,16 +45,11 @@ export function MealPlanner({
       list.push(entry);
       map.set(entry.planned_date, list);
     }
-    for (const list of map.values()) {
-      list.sort((a, b) => SLOT_ORDER.indexOf(a.meal_slot) - SLOT_ORDER.indexOf(b.meal_slot));
-    }
     return map;
   }, [entries]);
 
   function navigate(dir: -1 | 1) {
-    setAnchor((prev) =>
-      view === "day" ? addDays(prev, dir) : view === "week" ? addWeeks(prev, dir) : addMonths(prev, dir)
-    );
+    setAnchor((prev) => (view === "week" ? addWeeks(prev, dir) : addMonths(prev, dir)));
   }
 
   return (
@@ -69,7 +57,6 @@ export function MealPlanner({
       <div className="flex items-center justify-between gap-2">
         <Tabs value={view} onValueChange={(v) => setView(v as typeof view)}>
           <TabsList>
-            <TabsTrigger value="day">Day</TabsTrigger>
             <TabsTrigger value="week">Week</TabsTrigger>
             <TabsTrigger value="month">Month</TabsTrigger>
           </TabsList>
@@ -87,72 +74,58 @@ export function MealPlanner({
         </div>
       </div>
 
-      {view === "day" && <DayView date={anchor} entriesByDate={entriesByDate} recipes={recipes} />}
-      {view === "week" && <WeekView date={anchor} entriesByDate={entriesByDate} recipes={recipes} />}
-      {view === "month" && (
-        <MonthView
-          date={anchor}
-          entriesByDate={entriesByDate}
-          onSelectDay={(d) => {
-            setAnchor(d);
-            setView("day");
-          }}
-        />
-      )}
+      {view === "week" && <WeekView date={anchor} entriesByDate={entriesByDate} meals={meals} />}
+      {view === "month" && <MonthView date={anchor} entriesByDate={entriesByDate} meals={meals} />}
     </div>
   );
 }
 
-function DayCell({
-  date,
-  entries,
-  recipes,
-}: {
-  date: Date;
-  entries: Entry[];
-  recipes: Pick<RecipeRow, "id" | "title">[];
-}) {
-  const dateStr = format(date, "yyyy-MM-dd");
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      {entries.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No meals planned</p>
-      ) : (
-        entries.map((entry) => (
-          <div
-            key={entry.id}
-            className="flex items-center justify-between gap-1 rounded-md bg-secondary px-2 py-1"
-          >
-            <div className="min-w-0">
-              <p className="truncate text-xs font-medium">
-                {entry.recipe_title ?? entry.title_override ?? "Meal"}
-              </p>
-              <p className="text-[10px] text-muted-foreground">{SLOT_LABEL[entry.meal_slot]}</p>
-            </div>
-            <DeleteButton onDelete={() => deleteMealPlanEntry(entry.id)} label="Remove meal" />
-          </div>
-        ))
-      )}
-      <NewMealDialog date={dateStr} recipes={recipes} />
-    </div>
-  );
-}
-
-function DayView({
+function DaySlots({
   date,
   entriesByDate,
-  recipes,
+  meals,
 }: {
   date: Date;
   entriesByDate: Map<string, Entry[]>;
-  recipes: Pick<RecipeRow, "id" | "title">[];
+  meals: MealOption[];
 }) {
   const dateStr = format(date, "yyyy-MM-dd");
+  const entries = entriesByDate.get(dateStr) ?? [];
+
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-4">
-      <p className="mb-3 text-sm font-semibold">{format(date, "EEEE d MMMM")}</p>
-      <DayCell date={date} entries={entriesByDate.get(dateStr) ?? []} recipes={recipes} />
+    <div className="flex flex-col gap-1.5">
+      {MEAL_SLOT_ORDER.map((slot) => {
+        const entry = entries.find((e) => e.meal_slot === slot);
+        return (
+          <div key={slot} className="flex items-center justify-between gap-1 rounded-md bg-secondary px-2 py-1">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] text-muted-foreground">{MEAL_SLOT_LABEL[slot]}</p>
+              {entry ? (
+                <p className="truncate text-xs font-medium">
+                  {entry.meal_title ?? entry.title_override ?? "Meal"}
+                </p>
+              ) : (
+                <PlanEntryDialog
+                  date={dateStr}
+                  slot={slot}
+                  meals={meals}
+                  trigger={
+                    <button type="button" className="text-xs text-muted-foreground hover:text-foreground">
+                      + Add
+                    </button>
+                  }
+                />
+              )}
+            </div>
+            {entry ? (
+              <DeleteButton
+                onDelete={() => deleteMealPlanEntry(entry.id)}
+                label={`Remove ${MEAL_SLOT_LABEL[slot]}`}
+              />
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -160,11 +133,11 @@ function DayView({
 function WeekView({
   date,
   entriesByDate,
-  recipes,
+  meals,
 }: {
   date: Date;
   entriesByDate: Map<string, Entry[]>;
-  recipes: Pick<RecipeRow, "id" | "title">[];
+  meals: MealOption[];
 }) {
   const days = eachDayOfInterval({
     start: startOfWeek(date, { weekStartsOn: 1 }),
@@ -183,10 +156,8 @@ function WeekView({
               isToday(day) && "border-primary/50"
             )}
           >
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">
-              {format(day, "EEE d")}
-            </p>
-            <DayCell date={day} entries={entriesByDate.get(dateStr) ?? []} recipes={recipes} />
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">{format(day, "EEE d")}</p>
+            <DaySlots date={day} entriesByDate={entriesByDate} meals={meals} />
           </div>
         );
       })}
@@ -197,16 +168,17 @@ function WeekView({
 function MonthView({
   date,
   entriesByDate,
-  onSelectDay,
+  meals,
 }: {
   date: Date;
   entriesByDate: Map<string, Entry[]>;
-  onSelectDay: (d: Date) => void;
+  meals: MealOption[];
 }) {
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(date), { weekStartsOn: 1 }),
     end: endOfWeek(endOfMonth(date), { weekStartsOn: 1 }),
   });
+  const [expandedDay, setExpandedDay] = useState<Date | null>(null);
 
   return (
     <div>
@@ -219,25 +191,47 @@ function MonthView({
         ))}
         {days.map((day) => {
           const dateStr = format(day, "yyyy-MM-dd");
-          const count = entriesByDate.get(dateStr)?.length ?? 0;
+          const dayEntries = entriesByDate.get(dateStr) ?? [];
           return (
             <button
               key={dateStr}
               type="button"
-              onClick={() => onSelectDay(day)}
+              onClick={() => setExpandedDay(day)}
               className={cn(
-                "flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg border border-transparent text-xs",
+                "flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-transparent text-xs",
                 isSameMonth(day, date) ? "text-foreground" : "text-muted-foreground/40",
-                isToday(day) && "border-primary/60",
-                isSameDay(day, date) && "bg-secondary"
+                isToday(day) && "border-primary/60"
               )}
             >
               {format(day, "d")}
-              {count > 0 && <span className="size-1.5 rounded-full bg-primary" />}
+              <div className="flex gap-0.5">
+                {MEAL_SLOT_ORDER.map((slot) => (
+                  <span
+                    key={slot}
+                    className={cn(
+                      "size-1.5 rounded-full",
+                      dayEntries.some((e) => e.meal_slot === slot) ? "bg-primary" : "bg-border"
+                    )}
+                  />
+                ))}
+              </div>
             </button>
           );
         })}
       </div>
+
+      <Dialog open={expandedDay !== null} onOpenChange={(open) => !open && setExpandedDay(null)}>
+        <DialogContent>
+          {expandedDay ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>{format(expandedDay, "EEEE d MMMM")}</DialogTitle>
+              </DialogHeader>
+              <DaySlots date={expandedDay} entriesByDate={entriesByDate} meals={meals} />
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Life Admin",
-  description: "A personal life admin dashboard — finances, investments, fitness, car, recipes, travel and gifts in one place.",
+  description: "A personal life admin dashboard — finances, investments, fitness, car, meals, travel and gifts in one place.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
