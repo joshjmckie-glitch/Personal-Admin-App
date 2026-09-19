@@ -172,6 +172,21 @@ export type FitnessSessionRow = {
   notes: string | null;
   completed: boolean;
   source: "manual" | "strava";
+  strava_activity_id: number | null;
+  avg_heartrate: number | null;
+  elevation_gain_m: number | null;
+  created_at: string;
+};
+
+export type FitnessConnectionRow = {
+  id: string;
+  user_id: string;
+  provider: "strava";
+  athlete_id: number | null;
+  tokens_secret_id: string;
+  token_expires_at: string;
+  last_synced_at: string | null;
+  last_sync_error: string | null;
   created_at: string;
 };
 
@@ -405,11 +420,24 @@ export interface Database {
       >;
       fitness_sessions: TableDef<
         FitnessSessionRow,
-        "id" | "created_at" | "duration_minutes" | "distance_km" | "notes" | "completed" | "source"
+        | "id"
+        | "created_at"
+        | "duration_minutes"
+        | "distance_km"
+        | "notes"
+        | "completed"
+        | "source"
+        | "strava_activity_id"
+        | "avg_heartrate"
+        | "elevation_gain_m"
       >;
       fitness_personal_bests: TableDef<
         FitnessPersonalBestRow,
         "id" | "created_at" | "notes" | "achieved_on"
+      >;
+      fitness_connections: TableDef<
+        FitnessConnectionRow,
+        "id" | "created_at" | "athlete_id" | "last_synced_at" | "last_sync_error"
       >;
       car_vehicles: TableDef<
         CarVehicleRow,
@@ -473,6 +501,37 @@ export interface Database {
       };
       disconnect_trading212: {
         Args: { p_account_id: string };
+        Returns: undefined;
+      };
+      connect_strava: {
+        Args: {
+          p_athlete_id: number | null;
+          p_access_token: string;
+          p_refresh_token: string;
+          p_expires_at: string;
+        };
+        Returns: string;
+      };
+      get_strava_tokens: {
+        Args: Record<string, never>;
+        Returns: {
+          access_token: string;
+          refresh_token: string;
+          token_expires_at: string;
+          connection_id: string;
+        }[];
+      };
+      update_strava_tokens: {
+        Args: {
+          p_connection_id: string;
+          p_access_token: string;
+          p_refresh_token: string;
+          p_expires_at: string;
+        };
+        Returns: undefined;
+      };
+      disconnect_strava: {
+        Args: Record<string, never>;
         Returns: undefined;
       };
     };

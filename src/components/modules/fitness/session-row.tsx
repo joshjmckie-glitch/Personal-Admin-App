@@ -27,11 +27,16 @@ export function SessionRow({ session }: { session: FitnessSessionRow }) {
         <p className={cn("truncate text-sm", session.completed && "text-muted-foreground line-through")}>
           {ACTIVITY_LABEL[session.activity_type]} · {formatDate(session.scheduled_date)}
         </p>
-        {(session.duration_minutes || session.distance_km) && (
+        {(session.duration_minutes || session.distance_km || session.avg_heartrate || session.elevation_gain_m) && (
           <p className="text-xs text-muted-foreground">
-            {session.duration_minutes ? `${session.duration_minutes} min` : ""}
-            {session.duration_minutes && session.distance_km ? " · " : ""}
-            {session.distance_km ? `${session.distance_km} km` : ""}
+            {[
+              session.duration_minutes ? `${session.duration_minutes} min` : null,
+              session.distance_km ? `${session.distance_km} km` : null,
+              session.avg_heartrate ? `${Math.round(session.avg_heartrate)} bpm avg` : null,
+              session.elevation_gain_m ? `${Math.round(session.elevation_gain_m)} m elevation` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         )}
       </div>
